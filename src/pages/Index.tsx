@@ -27,6 +27,22 @@ const Index = () => {
     toast.success(`תבנית "${template.name}" נטענה`);
   }, []);
 
+  const handleAiSuggestTemplate = useCallback((templateId: DiagramTemplateId) => {
+    setSelectedTemplateId(templateId);
+    const tmpl = diagramTemplates.find(t => t.id === templateId);
+    if (tmpl) {
+      toast.info(`🤖 הבינה בחרה תבנית "${tmpl.name}"`);
+    }
+  }, []);
+
+  const handleAiSuggestColorTheme = useCallback((themeId: string) => {
+    const theme = colorThemes.find(t => t.id === themeId);
+    if (theme) {
+      setSelectedTheme(theme);
+      toast.info(`🎨 הבינה בחרה ערכת צבעים "${theme.name}"`);
+    }
+  }, []);
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-10">
@@ -60,6 +76,8 @@ const Index = () => {
           ref={editorRef}
           colorPalette={selectedTheme.colors}
           selectedTemplateId={selectedTemplateId}
+          onAiSuggestTemplate={handleAiSuggestTemplate}
+          onAiSuggestColorTheme={handleAiSuggestColorTheme}
         />
       </div>
     </div>
