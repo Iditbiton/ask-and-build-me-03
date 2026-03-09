@@ -1,0 +1,123 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 40 33% 97%;
+    --foreground: 220 20% 18%;
+
+    --card: 40 30% 95%;
+    --card-foreground: 220 20% 18%;
+
+    --popover: 40 33% 97%;
+    --popover-foreground: 220 20% 18%;
+
+    --primary: 24 80% 55%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 200 25% 90%;
+    --secondary-foreground: 220 20% 18%;
+
+    --muted: 40 20% 92%;
+    --muted-foreground: 220 10% 50%;
+
+    --accent: 170 40% 45%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 30 15% 85%;
+    --input: 30 15% 85%;
+    --ring: 24 80% 55%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 40 30% 95%;
+    --sidebar-foreground: 220 20% 18%;
+    --sidebar-primary: 24 80% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 40 20% 92%;
+    --sidebar-accent-foreground: 220 20% 18%;
+    --sidebar-border: 30 15% 85%;
+    --sidebar-ring: 24 80% 55%;
+
+    --canvas: 42 40% 96%;
+    --sketch: 220 20% 25%;
+  }
+
+  .dark {
+    --background: 220 20% 10%;
+    --foreground: 40 20% 92%;
+
+    --card: 220 18% 14%;
+    --card-foreground: 40 20% 92%;
+
+    --popover: 220 20% 10%;
+    --popover-foreground: 40 20% 92%;
+
+    --primary: 24 80% 55%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 15% 20%;
+    --secondary-foreground: 40 20% 92%;
+
+    --muted: 220 15% 18%;
+    --muted-foreground: 220 10% 55%;
+
+    --accent: 170 40% 45%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 15% 22%;
+    --input: 220 15% 22%;
+    --ring: 24 80% 55%;
+
+    --sidebar-background: 220 18% 12%;
+    --sidebar-foreground: 40 20% 92%;
+    --sidebar-primary: 24 80% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 15% 18%;
+    --sidebar-accent-foreground: 40 20% 92%;
+    --sidebar-border: 220 15% 22%;
+    --sidebar-ring: 24 80% 55%;
+
+    --canvas: 220 18% 12%;
+    --sketch: 40 20% 85%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+.font-sketch {
+  font-family: 'Caveat', cursive;
+}
+
+/* Paper texture overlay */
+.paper-texture {
+  background-image: 
+    radial-gradient(ellipse at 20% 50%, hsl(40 30% 94% / 0.4) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 50%, hsl(30 25% 93% / 0.3) 0%, transparent 50%);
+}
+
+/* Canvas grid pattern */
+.canvas-grid {
+  background-size: 24px 24px;
+  background-image:
+    linear-gradient(to right, hsl(30 15% 85% / 0.3) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(30 15% 85% / 0.3) 1px, transparent 1px);
+}
