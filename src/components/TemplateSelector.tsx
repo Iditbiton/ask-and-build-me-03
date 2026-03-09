@@ -164,7 +164,7 @@ const TemplateSelector = ({ selectedTemplateId, onSelect }: TemplateSelectorProp
           </Button>
         </PopoverTrigger>
 
-        <PopoverContent className="w-[28rem] p-2" align="start">
+        <PopoverContent className="w-[28rem] p-2 max-h-[70vh] overflow-y-auto" align="start">
           <div className="space-y-1">
             {diagramTemplates.map((template) => {
               const Icon = template.icon;
