@@ -5,6 +5,7 @@ import { colorThemes, type ColorTheme } from "@/components/ColorThemePicker";
 import ColorThemePicker from "@/components/ColorThemePicker";
 import TemplateSelector, { type Template } from "@/components/TemplateSelector";
 import AiAutoToggle from "@/components/AiAutoToggle";
+import RenderStyleToggle, { type RenderStyle } from "@/components/RenderStyleToggle";
 import InlineEditor from "@/components/InlineEditor";
 import {
   diagramTemplates,
@@ -17,6 +18,7 @@ const Index = () => {
     diagramTemplates[0].id
   );
   const [aiAuto, setAiAuto] = useState(true);
+  const [renderStyle, setRenderStyle] = useState<RenderStyle>("sketch");
   const editorRef = useRef<{ insertText: (text: string) => void }>(null);
 
   const handleSelectColorTheme = useCallback((theme: ColorTheme) => {
@@ -56,17 +58,22 @@ const Index = () => {
             <h1 className="text-lg font-bold font-sketch tracking-wide">OpenNapkinAI</h1>
           </div>
           <div className="flex items-center gap-2">
-            <AiAutoToggle aiAuto={aiAuto} onToggle={setAiAuto} />
-            {!aiAuto && (
+            <RenderStyleToggle style={renderStyle} onStyleChange={setRenderStyle} />
+            {renderStyle === "sketch" && (
               <>
-                <TemplateSelector
-                  selectedTemplateId={selectedTemplateId}
-                  onSelect={handleSelectTemplate}
-                />
-                <ColorThemePicker
-                  selectedTheme={selectedTheme.id}
-                  onSelect={handleSelectColorTheme}
-                />
+                <AiAutoToggle aiAuto={aiAuto} onToggle={setAiAuto} />
+                {!aiAuto && (
+                  <>
+                    <TemplateSelector
+                      selectedTemplateId={selectedTemplateId}
+                      onSelect={handleSelectTemplate}
+                    />
+                    <ColorThemePicker
+                      selectedTheme={selectedTheme.id}
+                      onSelect={handleSelectColorTheme}
+                    />
+                  </>
+                )}
               </>
             )}
           </div>
@@ -76,7 +83,9 @@ const Index = () => {
       <div className="flex-1 py-8 px-4">
         <div className="max-w-4xl mx-auto mb-6 text-center">
           <p className="text-sm text-muted-foreground">
-            כתוב טקסט, סמן חלק ממנו, ולחץ על "צור דיאגרמה" כדי להפוך אותו לויזואליזציה ✨
+            {renderStyle === "professional"
+              ? "כתוב טקסט, סמן חלק ממנו, ולחץ על \"צור אינפוגרפיקה\" ליצירת ויזואליזציה מקצועית ✨"
+              : "כתוב טקסט, סמן חלק ממנו, ולחץ על \"צור דיאגרמה\" כדי להפוך אותו לויזואליזציה ✨"}
           </p>
         </div>
         <InlineEditor
@@ -84,6 +93,7 @@ const Index = () => {
           colorPalette={selectedTheme.colors}
           selectedTemplateId={selectedTemplateId}
           aiAuto={aiAuto}
+          renderStyle={renderStyle}
           onAiSuggestTemplate={handleAiSuggestTemplate}
           onAiSuggestColorTheme={handleAiSuggestColorTheme}
         />
