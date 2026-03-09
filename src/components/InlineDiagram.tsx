@@ -102,13 +102,15 @@ const InlineDiagram = ({
 
     if (templateId && templateShapes.length > 0) {
       ctx.save();
-      ctx.globalAlpha = 0.22;
+      ctx.globalAlpha = 0.45;
       ctx.translate(0, 70);
       ctx.scale(data.width / 960, (data.height - 120) / 540);
 
-      templateShapes.forEach((shape) => {
-        const fill = shape.options?.fill || "hsl(0 0% 78%)";
-        const stroke = shape.options?.stroke || fill;
+      templateShapes.forEach((shape, i) => {
+        // Use color palette colors instead of original shape colors
+        const paletteColor = colorPalette[i % colorPalette.length];
+        const fill = paletteColor || shape.options?.fill || "hsl(0 0% 78%)";
+        const stroke = paletteColor || shape.options?.stroke || fill;
 
         rc.path(shape.path, {
           fill,

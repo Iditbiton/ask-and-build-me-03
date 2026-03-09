@@ -23,4 +23,6 @@ export interface DiagramData {
   connections: DiagramConnection[];
   width: number;
   height: number;
+  suggestedTemplateId?: string;
+  suggestedColorTheme?: string;
 }

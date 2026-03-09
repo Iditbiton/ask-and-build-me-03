@@ -7,6 +7,11 @@ import {
   Wind,
   Infinity,
   Pyramid,
+  Filter,
+  Clock,
+  Hexagon,
+  CircleDot,
+  RefreshCw,
   type LucideIcon,
 } from "lucide-react";
 
@@ -18,7 +23,12 @@ export type DiagramTemplateId =
   | "radial"
   | "pinwheel"
   | "eight"
-  | "pyramid";
+  | "pyramid"
+  | "funnel"
+  | "timeline"
+  | "hexagon"
+  | "venn"
+  | "cycle";
 
 export interface DiagramTemplate {
   id: DiagramTemplateId;
@@ -92,5 +102,45 @@ export const diagramTemplates: DiagramTemplate[] = [
     description: "היררכיה ברורה משכבת בסיס לפסגה",
     sampleText:
       "פירמידת ערך מוצר: תשתית יציבה בבסיס, UX באמצע, בידול עסקי בפסגה",
+  },
+  {
+    id: "funnel",
+    name: "Funnel",
+    icon: Filter,
+    description: "משפך - רחב למעלה וצר למטה, סינון שלבים",
+    sampleText:
+      "משפך מכירות: 1000 מבקרים → 200 לידים → 50 פגישות → 15 הצעות → 5 עסקאות",
+  },
+  {
+    id: "timeline",
+    name: "Timeline",
+    icon: Clock,
+    description: "ציר זמן עם אירועים לסירוגין",
+    sampleText:
+      "אבני דרך 2026: Q1 השקה, Q2 גיוס, Q3 התרחבות, Q4 רווחיות",
+  },
+  {
+    id: "hexagon",
+    name: "Hexagon",
+    icon: Hexagon,
+    description: "רשת משושים בסגנון כוורת",
+    sampleText:
+      "מיומנויות מפתח: מנהיגות, תקשורת, חשיבה אנליטית, יצירתיות, עבודת צוות, גמישות",
+  },
+  {
+    id: "venn",
+    name: "Venn",
+    icon: CircleDot,
+    description: "עיגולים חופפים שמראים קשרים בין קבוצות",
+    sampleText:
+      "איקיגאי: מה שאתה אוהב, מה שאתה טוב בו, מה שהעולם צריך, מה שמשלמים עליו",
+  },
+  {
+    id: "cycle",
+    name: "Cycle",
+    icon: RefreshCw,
+    description: "תהליך מחזורי שחוזר על עצמו",
+    sampleText:
+      "מחזור למידה: תכנון → ביצוע → מדידה → למידה → שיפור → חזרה לתכנון",
   },
 ];

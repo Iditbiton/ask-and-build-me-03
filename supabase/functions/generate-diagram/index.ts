@@ -23,6 +23,27 @@ const TEMPLATE_INSTRUCTIONS: Record<string, string> = {
     "Use a figure-eight layout: arrange nodes in two connected loops (left loop and right loop) with one bridge between loops.",
   pyramid:
     "Use a pyramid layout: hierarchical triangular structure with one top node, 2 middle nodes, and 3+ base nodes.",
+  funnel:
+    "Use a funnel layout: wide at the top narrowing down, representing filtering or narrowing of items.",
+  timeline:
+    "Use a timeline layout: horizontal or vertical sequence with clear temporal ordering.",
+  hexagon:
+    "Use a hexagon grid layout: honeycomb pattern with hexagonal grouping of related concepts.",
+  venn:
+    "Use a Venn diagram layout: overlapping circles showing relationships and intersections between groups.",
+  cycle:
+    "Use a cycle layout: circular arrangement showing a repeating process with arrows connecting back to the start.",
+};
+
+const COLOR_THEMES: Record<string, string[]> = {
+  default: ["#e07a3a", "#3d9b8f", "#5b7bb5", "#c75c5c", "#7cab5e", "#9b72b0"],
+  ocean: ["#1a73e8", "#00acc1", "#5c6bc0", "#0d47a1", "#26a69a", "#7986cb"],
+  sunset: ["#ff6f00", "#e65100", "#ff8f00", "#d84315", "#f4511e", "#ff9100"],
+  forest: ["#2e7d32", "#558b2f", "#33691e", "#4caf50", "#689f38", "#1b5e20"],
+  pastel: ["#f48fb1", "#ce93d8", "#90caf9", "#80cbc4", "#a5d6a7", "#ffcc80"],
+  monochrome: ["#424242", "#616161", "#757575", "#9e9e9e", "#546e7a", "#78909c"],
+  neon: ["#00e676", "#00b0ff", "#d500f9", "#ff1744", "#ffea00", "#76ff03"],
+  earth: ["#8d6e63", "#a1887f", "#6d4c41", "#795548", "#bcaaa4", "#4e342e"],
 };
 
 type TemplateId = keyof typeof TEMPLATE_INSTRUCTIONS;
@@ -52,6 +73,8 @@ type DiagramResponse = {
   connections: DiagramConnection[];
   width: number;
   height: number;
+  suggestedTemplateId?: string;
+  suggestedColorTheme?: string;
 };
 
 const SYSTEM_PROMPT = `You are an expert diagram designer. Given text describing an idea, process, comparison, or concept, you MUST return a JSON object that describes a visual diagram.
@@ -155,11 +178,33 @@ const buildTemplateConnections = (
     case "stacked":
     case "pinwheel":
     case "pyramid":
+    case "funnel":
+    case "timeline":
       return createSequentialConnections(nodes);
 
     case "diamond":
     case "radial":
+    case "hexagon":
       return createStarConnections(nodes);
+
+    case "cycle": {
+      const conns = createSequentialConnections(nodes);
+      if (nodes.length > 2) {
+        conns.push({ from: nodes[nodes.length - 1].id, to: nodes[0].id });
+      }
+      return conns;
+    }
+
+    case "venn": {
+      // Connect overlapping neighbors
+      const vennConns: DiagramConnection[] = [];
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          vennConns.push({ from: nodes[i].id, to: nodes[j].id });
+        }
+      }
+      return vennConns;
+    }
 
     case "puzzle": {
       const cols = Math.ceil(Math.sqrt(nodes.length));
@@ -207,6 +252,8 @@ const buildTemplateConnections = (
       return loopConnections;
     }
   }
+
+  return createSequentialConnections(nodes);
 };
 
 const applyTemplateLayout = (diagram: DiagramResponse, templateId: TemplateId | null) => {
@@ -407,11 +454,129 @@ const applyTemplateLayout = (diagram: DiagramResponse, templateId: TemplateId | 
       diagram.type = "comparison";
       break;
     }
+
+    case "funnel": {
+      // Funnel: items get narrower (centered) as they go down
+      const maxWidth = 260;
+      const stepHeight = Math.min(90, Math.floor((600 - 120) / n));
+      
+      nodes.forEach((node, i) => {
+        const ratio = 1 - (i / Math.max(1, n - 1)) * 0.6;
+        const w = Math.max(130, Math.round(maxWidth * ratio));
+        node.width = w;
+        node.height = 64;
+        node.x = centerX - w / 2;
+        node.y = 100 + i * stepHeight;
+        node.type = i === n - 1 ? "ellipse" : "rectangle";
+      });
+
+      diagram.type = "process";
+      break;
+    }
+
+    case "timeline": {
+      // Timeline: horizontal line with nodes above/below alternating
+      const gap = Math.min(140, Math.floor((800 - 80) / n));
+      const startX = (800 - (n - 1) * gap) / 2 - 65;
+
+      nodes.forEach((node, i) => {
+        node.x = startX + i * gap;
+        node.y = i % 2 === 0 ? 180 : 360;
+        node.type = "rectangle";
+      });
+
+      diagram.type = "process";
+      break;
+    }
+
+    case "hexagon": {
+      // Hex grid: honeycomb arrangement
+      const hexW = 150;
+      const hexH = 80;
+      const cols = Math.max(2, Math.ceil(Math.sqrt(n)));
+
+      nodes.forEach((node, i) => {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const offsetX = row % 2 === 0 ? 0 : hexW * 0.5;
+        node.x = 100 + col * hexW + offsetX;
+        node.y = 120 + row * (hexH + 20);
+        node.type = "ellipse";
+      });
+
+      diagram.type = "mindmap";
+      break;
+    }
+
+    case "venn": {
+      // Venn: overlapping circles
+      const radius = Math.min(160, 100 + n * 15);
+      
+      nodes.forEach((node, i) => {
+        const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
+        const r = n <= 2 ? 80 : radius * 0.45;
+        node.x = centerX + r * Math.cos(angle) - 65;
+        node.y = centerY + r * Math.sin(angle) - 32;
+        node.type = "circle";
+        node.width = 140;
+        node.height = 140;
+      });
+
+      diagram.type = "comparison";
+      break;
+    }
+
+    case "cycle": {
+      // Cycle: circular arrangement
+      const cycleRadius = Math.min(180, 120 + n * 12);
+
+      nodes.forEach((node, i) => {
+        const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
+        node.x = centerX + cycleRadius * Math.cos(angle) - 65;
+        node.y = centerY + cycleRadius * Math.sin(angle) - 32;
+        node.type = "ellipse";
+      });
+
+      diagram.type = "process";
+      break;
+    }
   }
 
   clampToCanvas(nodes);
   diagram.connections = dedupeConnections(buildTemplateConnections(nodes, templateId));
 };
+
+// Use tool calling to let AI pick template + color theme
+const autoSelectTools = [
+  {
+    type: "function",
+    function: {
+      name: "select_style",
+      description: "Select the best visual template and color theme for the given text content.",
+      parameters: {
+        type: "object",
+        properties: {
+          templateId: {
+            type: "string",
+            enum: Object.keys(TEMPLATE_INSTRUCTIONS),
+            description: "The template that best fits the content structure. stacked=layers/hierarchy, arrow=linear process, diamond=decisions, puzzle=complementary parts, radial=central concept with branches, pinwheel=spiral/iterative, eight=two connected loops, pyramid=hierarchy top-to-bottom, funnel=filtering/narrowing, timeline=temporal sequence, hexagon=honeycomb grouping, venn=overlapping relationships, cycle=repeating circular process",
+          },
+          colorTheme: {
+            type: "string",
+            enum: Object.keys(COLOR_THEMES),
+            description: "The color theme that best matches the content mood. default=balanced, ocean=professional/tech, sunset=warm/energetic, forest=nature/growth, pastel=soft/friendly, monochrome=serious/formal, neon=bold/modern, earth=grounded/traditional",
+          },
+          reasoning: {
+            type: "string",
+            description: "Brief explanation of why this template and color were chosen",
+          },
+        },
+        required: ["templateId", "colorTheme", "reasoning"],
+        additionalProperties: false,
+      },
+    },
+  },
+];
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -427,8 +592,8 @@ serve(async (req) => {
       });
     }
 
-    const templateId = toTemplateId(rawTemplateId);
-    console.info("generate-diagram request", { mode, rawTemplateId, templateId });
+    const userTemplateId = toTemplateId(rawTemplateId);
+    console.info("generate-diagram request", { mode, rawTemplateId, userTemplateId });
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       return new Response(JSON.stringify({ error: "API key not configured" }), {
@@ -437,12 +602,64 @@ serve(async (req) => {
       });
     }
 
+    // Step 1: If no template specified, let AI auto-select template + color
+    let templateId = userTemplateId;
+    let suggestedColorTheme: string | null = null;
+
+    if (!templateId) {
+      const styleResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-lite",
+          messages: [
+            {
+              role: "system",
+              content: "You are a visual design expert. Analyze the text and select the best diagram template and color theme.",
+            },
+            {
+              role: "user",
+              content: `Analyze this text and select the best visual template and color theme:\n\n${text}`,
+            },
+          ],
+          tools: autoSelectTools,
+          tool_choice: { type: "function", function: { name: "select_style" } },
+          temperature: 0.3,
+        }),
+      });
+
+      if (styleResponse.ok) {
+        try {
+          const styleData = await styleResponse.json();
+          const toolCall = styleData.choices?.[0]?.message?.tool_calls?.[0];
+          if (toolCall?.function?.arguments) {
+            const args = JSON.parse(toolCall.function.arguments);
+            console.info("AI style selection:", args);
+            templateId = toTemplateId(args.templateId);
+            if (args.colorTheme && args.colorTheme in COLOR_THEMES) {
+              suggestedColorTheme = args.colorTheme;
+            }
+          }
+        } catch (e) {
+          console.error("Failed to parse style selection:", e);
+        }
+      }
+
+      // Fallback
+      if (!templateId) templateId = "radial";
+      if (!suggestedColorTheme) suggestedColorTheme = "default";
+    }
+
+    // Step 2: Generate diagram content
     const modeInstruction = mode === "creative"
       ? "Be creative and expand on the ideas. Add related concepts, elaborate on connections, and make the diagram richer than the literal text. Think of what the user might have meant and add value."
       : "Stay as close as possible to the original text. Use the exact terms and structure from the text. Do not add concepts that are not explicitly mentioned.";
 
     const templateInstruction = templateId
-      ? `Template style is '${templateId}'. ${TEMPLATE_INSTRUCTIONS[templateId]}`
+      ? `Template style is '${templateId}'. ${TEMPLATE_INSTRUCTIONS[templateId as string]}`
       : "No explicit template style provided. Choose the best fitting layout naturally.";
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -514,6 +731,14 @@ serve(async (req) => {
     diagramData.height = diagramData.height || 600;
 
     applyTemplateLayout(diagramData, templateId);
+
+    // Include AI suggestions in response
+    if (!userTemplateId) {
+      diagramData.suggestedTemplateId = templateId as string;
+    }
+    if (suggestedColorTheme) {
+      diagramData.suggestedColorTheme = suggestedColorTheme;
+    }
 
     return new Response(JSON.stringify(diagramData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

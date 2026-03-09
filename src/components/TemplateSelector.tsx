@@ -97,6 +97,50 @@ const TemplatePreview = ({ templateId }: { templateId: DiagramTemplateId }) => {
           <span className={`${node} left-12 top-8`} />
         </>
       )}
+
+      {templateId === "funnel" && (
+        <>
+          <span className="absolute left-2 top-2 h-2 w-12 rounded-[2px] bg-primary/80" />
+          <span className="absolute left-4 top-5 h-2 w-8 rounded-[2px] bg-primary/60" />
+          <span className="absolute left-6 top-8 h-2 w-4 rounded-[2px] bg-primary/40" />
+        </>
+      )}
+
+      {templateId === "timeline" && (
+        <>
+          <span className="absolute left-1 top-5 w-14 h-[2px] bg-primary/40" />
+          <span className={`${node} left-2 top-2`} />
+          <span className={`${node} left-7 top-6`} />
+          <span className={`${node} left-12 top-2`} />
+        </>
+      )}
+
+      {templateId === "hexagon" && (
+        <>
+          <span className={`${roundNode} left-4 top-2`} />
+          <span className={`${roundNode} left-10 top-2`} />
+          <span className={`${roundNode} left-2 top-6`} />
+          <span className={`${roundNode} left-7 top-6`} />
+          <span className={`${roundNode} left-12 top-6`} />
+        </>
+      )}
+
+      {templateId === "venn" && (
+        <>
+          <span className="absolute left-3 top-3 h-6 w-6 rounded-full border-2 border-primary/60 bg-transparent" />
+          <span className="absolute left-7 top-3 h-6 w-6 rounded-full border-2 border-primary/60 bg-transparent" />
+        </>
+      )}
+
+      {templateId === "cycle" && (
+        <>
+          <span className={`${roundNode} left-7 top-1`} />
+          <span className={`${roundNode} left-12 top-4`} />
+          <span className={`${roundNode} left-10 top-8`} />
+          <span className={`${roundNode} left-4 top-8`} />
+          <span className={`${roundNode} left-2 top-4`} />
+        </>
+      )}
     </div>
   );
 };
@@ -120,7 +164,7 @@ const TemplateSelector = ({ selectedTemplateId, onSelect }: TemplateSelectorProp
           </Button>
         </PopoverTrigger>
 
-        <PopoverContent className="w-[28rem] p-2" align="start">
+        <PopoverContent className="w-[28rem] p-2 max-h-[70vh] overflow-y-auto" align="start">
           <div className="space-y-1">
             {diagramTemplates.map((template) => {
               const Icon = template.icon;
