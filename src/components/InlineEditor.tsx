@@ -25,7 +25,7 @@ interface InlineEditorProps {
   onAiSuggestColorTheme?: (themeId: string) => void;
 }
 
-const InlineEditor = forwardRef<{ insertText: (text: string) => void }, InlineEditorProps>(({ colorPalette, selectedTemplateId, onAiSuggestTemplate, onAiSuggestColorTheme }, ref) => {
+const InlineEditor = forwardRef<{ insertText: (text: string) => void }, InlineEditorProps>(({ colorPalette, selectedTemplateId, aiAuto = true, onAiSuggestTemplate, onAiSuggestColorTheme }, ref) => {
   const [generationMode, setGenerationMode] = useState<GenerationMode>("literal");
 
   useImperativeHandle(ref, () => ({
