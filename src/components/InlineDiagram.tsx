@@ -174,45 +174,48 @@ const InlineDiagram = ({
     // Nodes
     data.nodes.forEach((node, i) => {
       const color = node.color || colorPalette[i % colorPalette.length];
-      const opts = {
-        fill: color,
-        fillStyle: "solid" as const,
-        fillWeight: 1,
-        roughness: 1.5,
-        stroke: "#333",
-        strokeWidth: 1.5,
-      };
 
-      // Always draw node shapes
-      switch (node.type) {
-        case "ellipse":
-        case "circle":
-          rc.ellipse(
-            node.x + node.width / 2,
-            node.y + node.height / 2,
-            node.width,
-            node.height,
-            opts
-          );
-          break;
-        case "diamond":
-          rc.polygon(
-            [
-              [node.x + node.width / 2, node.y],
-              [node.x + node.width, node.y + node.height / 2],
-              [node.x + node.width / 2, node.y + node.height],
-              [node.x, node.y + node.height / 2],
-            ],
-            opts
-          );
-          break;
-        default:
-          rc.rectangle(node.x, node.y, node.width, node.height, opts);
+      // Only draw node shapes when NOT using a template
+      if (!useTemplateNodeStyle) {
+        const opts = {
+          fill: color,
+          fillStyle: "solid" as const,
+          fillWeight: 1,
+          roughness: 1.5,
+          stroke: "#333",
+          strokeWidth: 1.5,
+        };
+
+        switch (node.type) {
+          case "ellipse":
+          case "circle":
+            rc.ellipse(
+              node.x + node.width / 2,
+              node.y + node.height / 2,
+              node.width,
+              node.height,
+              opts
+            );
+            break;
+          case "diamond":
+            rc.polygon(
+              [
+                [node.x + node.width / 2, node.y],
+                [node.x + node.width, node.y + node.height / 2],
+                [node.x + node.width / 2, node.y + node.height],
+                [node.x, node.y + node.height / 2],
+              ],
+              opts
+            );
+            break;
+          default:
+            rc.rectangle(node.x, node.y, node.width, node.height, opts);
+        }
       }
 
       // Label
-      ctx.font = "bold 16px 'Caveat', cursive";
-      ctx.fillStyle = "#fff";
+      ctx.font = useTemplateNodeStyle ? "bold 18px 'Caveat', cursive" : "bold 16px 'Caveat', cursive";
+      ctx.fillStyle = useTemplateNodeStyle ? "hsl(220, 20%, 20%)" : "#fff";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 
