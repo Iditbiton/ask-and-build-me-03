@@ -198,11 +198,13 @@ const InlineEditor = forwardRef<{ insertText: (text: string) => void }, InlineEd
 
       setLoadingBlockId(blockId);
       try {
-        const requestBody = {
+        const requestBody: Record<string, unknown> = {
           text: block.sourceText,
           mode: generationMode,
-          templateId: selectedTemplateId,
         };
+        if (!aiAuto) {
+          requestBody.templateId = selectedTemplateId;
+        }
 
         console.info("[generate-diagram] regenerate", requestBody);
 
