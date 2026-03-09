@@ -184,7 +184,7 @@ const InlineEditor = forwardRef<{ insertText: (text: string) => void }, InlineEd
         setLoadingBlockId(null);
       }
     },
-    [generationMode, selectedTemplateId]
+    [generationMode, selectedTemplateId, aiAuto]
   );
 
   const removeDiagram = useCallback((blockId: string) => {
