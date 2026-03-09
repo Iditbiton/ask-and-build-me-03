@@ -154,7 +154,7 @@ const InlineEditor = forwardRef<{ insertText: (text: string) => void }, InlineEd
             setBlocks((prev) =>
               prev.map((b) =>
                 b.id === newDiagramId
-                  ? { ...b, antvSyntax: data.syntax, renderStyle: "professional" }
+                  ? { ...b, antvSyntax: data.svg, renderStyle: "professional" }
                   : b
               )
             );
@@ -344,7 +344,7 @@ const InlineEditor = forwardRef<{ insertText: (text: string) => void }, InlineEd
                   </div>
                 ) : block.renderStyle === "professional" && block.antvSyntax ? (
                   <AntVDiagram
-                    syntax={block.antvSyntax}
+                    svgContent={block.antvSyntax}
                     sourceText={block.sourceText || ""}
                     isRegenerating={loadingBlockId === block.id}
                     onRemove={() => removeDiagram(block.id)}

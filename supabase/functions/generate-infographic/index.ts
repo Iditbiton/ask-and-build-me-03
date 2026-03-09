@@ -6,96 +6,52 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `You are an expert infographic designer using AntV Infographic syntax.
-
-AntV Infographic uses a YAML-like indented syntax. Here are EXACT working examples:
-
-EXAMPLE 1 - Simple list:
-infographic list-row-simple-horizontal-arrow
-data
-  title Project Phases
-  lists
-    - label Phase 1
-      desc Planning and research
-    - label Phase 2
-      desc Design and prototyping
-    - label Phase 3
-      desc Development
-
-EXAMPLE 2 - Steps:
-infographic sequence-steps-simple
-data
-  title How It Works
-  sequences
-    - label Step 1
-      desc Sign up for free
-    - label Step 2
-      desc Create your project
-    - label Step 3
-      desc Launch
-
-EXAMPLE 3 - Comparison:
-infographic compare-binary-card
-data
-  title Pros vs Cons
-  lists
-    - label Advantage 1
-      desc Fast performance
-      group pros
-    - label Advantage 2
-      desc Easy to use
-      group pros
-    - label Disadvantage 1
-      desc Limited features
-      group cons
-
-EXAMPLE 4 - Icon cards:
-infographic list-grid-icon-card
-data
-  title Key Features
-  lists
-    - label Speed
-      desc Lightning fast processing
-      icon rocket
-    - label Security
-      desc Enterprise-grade protection
-      icon shield
-    - label Scale
-      desc Grows with your needs
-      icon chart-line
-
-EXAMPLE 5 - Timeline:
-infographic sequence-timeline-vertical
-data
-  title Company History
-  sequences
-    - label Founded
-      desc Started in a garage
-    - label Series A
-      desc Raised $10M
-    - label IPO
-      desc Went public
-
-AVAILABLE TEMPLATES (use exactly these names):
-Lists: list-row-simple-horizontal-arrow, list-row-horizontal-icon-arrow, list-grid-compact-card, list-row-simple-vertical, list-column-simple, list-grid-icon-card, list-row-simple-horizontal-number
-Steps/Sequence: sequence-steps-simple, sequence-stairs-front-pill-badge, sequence-steps-card, sequence-snake-horizontal-card, sequence-timeline-horizontal, sequence-timeline-vertical
-Comparison: compare-binary-card, compare-binary-simple, compare-swot-card, compare-quadrant-simple
-Hierarchy: hierarchy-mindmap-right, hierarchy-mindmap-lr, hierarchy-org-chart, hierarchy-tree-vertical
-Relations: relation-dagre-flow-tb-simple-circle-node, relation-dagre-flow-lr-card, relation-radial-simple, relation-cycle-simple
-Charts: chart-pie-simple, chart-bar-simple, chart-column-simple, chart-line-simple
+const SYSTEM_PROMPT = `You are an expert infographic designer. Generate a complete, self-contained SVG infographic from the given text.
 
 CRITICAL RULES:
-1. Return ONLY the raw syntax. NO markdown backticks, NO explanation, NO comments.
-2. Use EXACTLY 2-space indentation (not tabs).
-3. The first line MUST be: infographic <template-name>
-4. The second line MUST be: data
-5. Detect input language. If Hebrew, ALL text MUST be in Hebrew.
-6. Labels: 1-4 words MAX. Short and punchy.
-7. Descriptions: One concise sentence.
-8. Use 3-7 items.
-9. Choose the template that BEST fits the content structure.
-10. For list templates use "lists", for sequence templates use "sequences".
-11. Do NOT add any fields not shown in the examples above.`;
+1. Return ONLY valid SVG markup. Start with <svg> and end with </svg>. NO markdown, NO explanation.
+2. SVG dimensions: width="800" height="600" viewBox="0 0 800 600"
+3. Detect input language. If Hebrew/Arabic, use dir="rtl" and text-anchor="end" for text, and place text right-aligned.
+4. Use modern, clean, professional design with:
+   - Rounded rectangles with soft shadows
+   - A harmonious color palette (blues, teals, warm accents)
+   - Clear visual hierarchy: large bold title, medium subtitles, smaller body text
+   - Icons represented as simple geometric shapes or emoji characters
+   - Connecting lines, arrows, or visual flow between elements
+5. Font: Use sans-serif fonts. For Hebrew use 'Segoe UI', 'Arial', sans-serif.
+6. Include a background (subtle gradient or solid light color).
+7. Make it visually rich: use gradients, rounded corners (rx="12"), subtle drop shadows via <filter>.
+8. Text MUST be inside the shapes, properly centered and sized to fit.
+9. Use 4-8 content items maximum. Labels should be 1-4 words. Descriptions 1 short sentence.
+10. Layout types to choose from based on content:
+    - Vertical list with cards (best for sequential items)
+    - Grid layout (best for features/categories)  
+    - Timeline (best for chronological events)
+    - Flowchart (best for processes)
+    - Comparison (best for pros/cons)
+
+EXAMPLE SVG STRUCTURE:
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <defs>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.15"/>
+    </filter>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f0f4f8"/>
+      <stop offset="100%" style="stop-color:#e2e8f0"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#bg)" rx="0"/>
+  <!-- Title -->
+  <text x="400" y="50" text-anchor="middle" font-family="sans-serif" font-size="28" font-weight="bold" fill="#1a365d">Title Here</text>
+  <!-- Cards with shadow -->
+  <rect x="50" y="80" width="320" height="100" rx="12" fill="white" filter="url(#shadow)"/>
+  <rect x="58" y="80" width="6" height="100" rx="3" fill="#3182ce"/>
+  <text x="80" y="120" font-family="sans-serif" font-size="18" font-weight="bold" fill="#2d3748">Label</text>
+  <text x="80" y="145" font-family="sans-serif" font-size="14" fill="#718096">Description text here</text>
+</svg>
+
+Make the infographic BEAUTIFUL and PROFESSIONAL. Use color coding, visual grouping, and clear information hierarchy.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -131,10 +87,10 @@ serve(async (req) => {
           { role: "system", content: SYSTEM_PROMPT },
           {
             role: "user",
-            content: `Convert this text into an AntV Infographic. Choose the best template. Return ONLY the syntax, nothing else:\n\n${text}`,
+            content: `Create a beautiful SVG infographic from this text. Return ONLY the SVG code:\n\n${text}`,
           },
         ],
-        temperature: 0.3,
+        temperature: 0.4,
       }),
     });
 
@@ -170,23 +126,32 @@ serve(async (req) => {
       });
     }
 
-    // Clean up: remove markdown code blocks if present
-    let syntax = content.trim();
-    if (syntax.startsWith("```")) {
-      syntax = syntax.replace(/^```(?:infographic|text|yaml)?\n?/, "").replace(/\n?```$/, "");
+    // Extract SVG from response
+    let svg = content.trim();
+    
+    // Remove markdown code blocks if present
+    if (svg.startsWith("```")) {
+      svg = svg.replace(/^```(?:svg|xml|html)?\n?/, "").replace(/\n?```$/, "");
     }
     
-    // Ensure it starts with "infographic"
-    if (!syntax.startsWith("infographic")) {
-      const idx = syntax.indexOf("infographic");
-      if (idx !== -1) {
-        syntax = syntax.substring(idx);
-      }
+    // Extract just the SVG tag
+    const svgStart = svg.indexOf("<svg");
+    const svgEnd = svg.lastIndexOf("</svg>");
+    if (svgStart !== -1 && svgEnd !== -1) {
+      svg = svg.substring(svgStart, svgEnd + 6);
     }
 
-    console.info("Generated AntV syntax:", syntax.substring(0, 300));
+    if (!svg.includes("<svg")) {
+      console.error("No valid SVG in response:", svg.substring(0, 200));
+      return new Response(JSON.stringify({ error: "Failed to generate valid SVG" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    return new Response(JSON.stringify({ syntax }), {
+    console.info("Generated SVG infographic, length:", svg.length);
+
+    return new Response(JSON.stringify({ svg }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

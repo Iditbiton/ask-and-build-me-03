@@ -1,11 +1,11 @@
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useRef, useCallback } from "react";
 import { motion } from "framer-motion";
-import { X, RotateCcw, Download, Copy, Quote, AlertTriangle } from "lucide-react";
+import { X, RotateCcw, Download, Copy, Quote } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 interface AntVDiagramProps {
-  syntax: string;
+  svgContent: string;
   sourceText: string;
   isRegenerating: boolean;
   onRemove: () => void;
@@ -13,105 +13,26 @@ interface AntVDiagramProps {
 }
 
 const AntVDiagram = ({
-  syntax,
+  svgContent,
   sourceText,
   isRegenerating,
   onRemove,
   onRegenerate,
 }: AntVDiagramProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const infographicRef = useRef<any>(null);
-  const [renderError, setRenderError] = useState<string | null>(null);
-  const [isRendered, setIsRendered] = useState(false);
 
-  useEffect(() => {
-    if (!containerRef.current || !syntax) return;
-
-    let cancelled = false;
-
-    const renderInfographic = async () => {
-      try {
-        setRenderError(null);
-        setIsRendered(false);
-
-        const { Infographic } = await import("@antv/infographic");
-
-        if (cancelled || !containerRef.current) return;
-
-        // Clear previous
-        if (infographicRef.current) {
-          try {
-            infographicRef.current.destroy();
-          } catch { /* ignore */ }
-          infographicRef.current = null;
-        }
-
-        containerRef.current.innerHTML = "";
-
-        const infographic = new Infographic({
-          container: containerRef.current,
-          width: "100%",
-          height: "100%",
-        });
-
-        infographicRef.current = infographic;
-        
-        // Render the syntax
-        infographic.render(syntax);
-        
-        // Check if SVG was actually created
-        setTimeout(() => {
-          if (!cancelled && containerRef.current) {
-            const svgEl = containerRef.current.querySelector("svg");
-            if (svgEl) {
-              setIsRendered(true);
-              console.log("AntV Infographic rendered successfully");
-            } else {
-              console.warn("AntV: No SVG element found after render");
-              setRenderError("הרינדור לא הצליח - נסה לייצר מחדש");
-            }
-          }
-        }, 1000);
-      } catch (err) {
-        console.error("AntV Infographic render error:", err);
-        if (!cancelled) {
-          setRenderError(`שגיאה ברינדור: ${err instanceof Error ? err.message : "לא ידוע"}`);
-        }
-      }
-    };
-
-    renderInfographic();
-
-    return () => {
-      cancelled = true;
-      if (infographicRef.current) {
-        try {
-          infographicRef.current.destroy();
-        } catch { /* ignore */ }
-        infographicRef.current = null;
-      }
-    };
-  }, [syntax]);
-
-  const handleDownload = useCallback(async () => {
-    if (!containerRef.current) return;
-    
-    const svgEl = containerRef.current.querySelector("svg");
-    if (svgEl) {
-      const svgData = new XMLSerializer().serializeToString(svgEl);
-      const blob = new Blob([svgData], { type: "image/svg+xml" });
-      const link = document.createElement("a");
-      link.download = `infographic-${Date.now()}.svg`;
-      link.href = URL.createObjectURL(blob);
-      link.click();
-      URL.revokeObjectURL(link.href);
-      toast.success("SVG הורד!");
-    }
-  }, []);
+  const handleDownload = useCallback(() => {
+    const blob = new Blob([svgContent], { type: "image/svg+xml" });
+    const link = document.createElement("a");
+    link.download = `infographic-${Date.now()}.svg`;
+    link.href = URL.createObjectURL(blob);
+    link.click();
+    URL.revokeObjectURL(link.href);
+    toast.success("SVG הורד!");
+  }, [svgContent]);
 
   const handleCopy = useCallback(async () => {
     if (!containerRef.current) return;
-    
     const svgEl = containerRef.current.querySelector("svg");
     if (!svgEl) return;
 
@@ -120,13 +41,15 @@ const AntVDiagram = ({
       const img = new Image();
       const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
       const url = URL.createObjectURL(svgBlob);
-      
+
       img.onload = async () => {
         const canvas = document.createElement("canvas");
         canvas.width = img.naturalWidth || 800;
         canvas.height = img.naturalHeight || 600;
         const ctx = canvas.getContext("2d");
         if (ctx) {
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
           ctx.drawImage(img, 0, 0);
           canvas.toBlob(async (blob) => {
             if (blob) {
@@ -172,29 +95,12 @@ const AntVDiagram = ({
         </Button>
       </div>
 
-      {renderError && (
-        <div className="flex items-center justify-center gap-2 p-4 text-sm text-destructive" style={{ direction: "rtl" }}>
-          <AlertTriangle className="w-4 h-4" />
-          <span>{renderError}</span>
-          <Button variant="outline" size="sm" onClick={onRegenerate} className="mr-2">
-            נסה שוב
-          </Button>
-        </div>
-      )}
-
       <div
         ref={containerRef}
-        className="flex items-center justify-center p-4"
-        style={{ minHeight: "500px", width: "100%" }}
+        className="flex items-center justify-center p-4 overflow-auto"
+        dangerouslySetInnerHTML={{ __html: svgContent }}
+        style={{ minHeight: "300px" }}
       />
-
-      {/* Debug: show raw syntax in dev */}
-      {!isRendered && !renderError && syntax && (
-        <details className="px-4 pb-2 text-xs text-muted-foreground">
-          <summary className="cursor-pointer">סינטקס גולמי (דיבאג)</summary>
-          <pre className="mt-1 p-2 bg-muted/50 rounded text-[10px] whitespace-pre-wrap overflow-auto max-h-40" dir="ltr">{syntax}</pre>
-        </details>
-      )}
     </motion.div>
   );
 };
