@@ -122,54 +122,56 @@ const InlineDiagram = ({
       ctx.restore();
     }
 
-    // Connections
-    data.connections.forEach((conn) => {
-      const fromNode = data.nodes.find((n) => n.id === conn.from);
-      const toNode = data.nodes.find((n) => n.id === conn.to);
-      if (!fromNode || !toNode) return;
+    const useTemplateNodeStyle = Boolean(templateId) && templateShapes.length > 0;
 
-      const from = getNodeCenter(fromNode);
-      const to = getNodeCenter(toNode);
+    // Connections — only draw when NOT using template style
+    if (!useTemplateNodeStyle) {
+      data.connections.forEach((conn) => {
+        const fromNode = data.nodes.find((n) => n.id === conn.from);
+        const toNode = data.nodes.find((n) => n.id === conn.to);
+        if (!fromNode || !toNode) return;
 
-      rc.line(from.x, from.y, to.x, to.y, {
-        stroke: "#666",
-        strokeWidth: 1.5,
-        roughness: 1.2,
+        const from = getNodeCenter(fromNode);
+        const to = getNodeCenter(toNode);
+
+        rc.line(from.x, from.y, to.x, to.y, {
+          stroke: "#666",
+          strokeWidth: 1.5,
+          roughness: 1.2,
+        });
+
+        const angle = Math.atan2(to.y - from.y, to.x - from.x);
+        const headLen = 12;
+        const edgeX = to.x - Math.cos(angle) * (toNode.width / 2 + 4);
+        const edgeY = to.y - Math.sin(angle) * (toNode.height / 2 + 4);
+
+        rc.line(
+          edgeX,
+          edgeY,
+          edgeX - headLen * Math.cos(angle - Math.PI / 6),
+          edgeY - headLen * Math.sin(angle - Math.PI / 6),
+          { stroke: "#666", strokeWidth: 1.5, roughness: 0.5 }
+        );
+        rc.line(
+          edgeX,
+          edgeY,
+          edgeX - headLen * Math.cos(angle + Math.PI / 6),
+          edgeY - headLen * Math.sin(angle + Math.PI / 6),
+          { stroke: "#666", strokeWidth: 1.5, roughness: 0.5 }
+        );
+
+        if (conn.label) {
+          const midX = (from.x + to.x) / 2;
+          const midY = (from.y + to.y) / 2;
+          ctx.font = "14px 'Caveat', cursive";
+          ctx.fillStyle = "#666";
+          ctx.textAlign = "center";
+          ctx.fillText(conn.label, midX, midY - 8);
+        }
       });
-
-      const angle = Math.atan2(to.y - from.y, to.x - from.x);
-      const headLen = 12;
-      const edgeX = to.x - Math.cos(angle) * (toNode.width / 2 + 4);
-      const edgeY = to.y - Math.sin(angle) * (toNode.height / 2 + 4);
-
-      rc.line(
-        edgeX,
-        edgeY,
-        edgeX - headLen * Math.cos(angle - Math.PI / 6),
-        edgeY - headLen * Math.sin(angle - Math.PI / 6),
-        { stroke: "#666", strokeWidth: 1.5, roughness: 0.5 }
-      );
-      rc.line(
-        edgeX,
-        edgeY,
-        edgeX - headLen * Math.cos(angle + Math.PI / 6),
-        edgeY - headLen * Math.sin(angle + Math.PI / 6),
-        { stroke: "#666", strokeWidth: 1.5, roughness: 0.5 }
-      );
-
-      if (conn.label) {
-        const midX = (from.x + to.x) / 2;
-        const midY = (from.y + to.y) / 2;
-        ctx.font = "14px 'Caveat', cursive";
-        ctx.fillStyle = "#666";
-        ctx.textAlign = "center";
-        ctx.fillText(conn.label, midX, midY - 8);
-      }
-    });
+    }
 
     // Nodes
-    const useTemplateNodeStyle = Boolean(templateId);
-
     data.nodes.forEach((node, i) => {
       const color = node.color || colorPalette[i % colorPalette.length];
       const opts = {
@@ -181,46 +183,45 @@ const InlineDiagram = ({
         strokeWidth: 1.5,
       };
 
-      if (!useTemplateNodeStyle) {
-        switch (node.type) {
-          case "ellipse":
-          case "circle":
-            rc.ellipse(
-              node.x + node.width / 2,
-              node.y + node.height / 2,
-              node.width,
-              node.height,
-              opts
-            );
-            break;
-          case "diamond":
-            rc.polygon(
-              [
-                [node.x + node.width / 2, node.y],
-                [node.x + node.width, node.y + node.height / 2],
-                [node.x + node.width / 2, node.y + node.height],
-                [node.x, node.y + node.height / 2],
-              ],
-              opts
-            );
-            break;
-          default:
-            rc.rectangle(node.x, node.y, node.width, node.height, opts);
-        }
+      // Always draw node shapes
+      switch (node.type) {
+        case "ellipse":
+        case "circle":
+          rc.ellipse(
+            node.x + node.width / 2,
+            node.y + node.height / 2,
+            node.width,
+            node.height,
+            opts
+          );
+          break;
+        case "diamond":
+          rc.polygon(
+            [
+              [node.x + node.width / 2, node.y],
+              [node.x + node.width, node.y + node.height / 2],
+              [node.x + node.width / 2, node.y + node.height],
+              [node.x, node.y + node.height / 2],
+            ],
+            opts
+          );
+          break;
+        default:
+          rc.rectangle(node.x, node.y, node.width, node.height, opts);
       }
 
       // Label
-      ctx.font = useTemplateNodeStyle ? "bold 15px 'Caveat', cursive" : "bold 16px 'Caveat', cursive";
-      ctx.fillStyle = useTemplateNodeStyle ? "hsl(220, 20%, 20%)" : "#fff";
+      ctx.font = "bold 16px 'Caveat', cursive";
+      ctx.fillStyle = "#fff";
       ctx.textAlign = "center";
-      ctx.textBaseline = useTemplateNodeStyle ? "top" : "middle";
+      ctx.textBaseline = "middle";
 
       const centerX = node.x + node.width / 2;
-      const labelY = useTemplateNodeStyle ? node.y + node.height + 6 : node.y + node.height / 2;
+      const labelY = node.y + node.height / 2;
       const words = node.label.split(" ");
       const lines: string[] = [];
       let currentLine = "";
-      const maxWidth = useTemplateNodeStyle ? node.width + 20 : node.width - 16;
+      const maxWidth = node.width - 16;
 
       words.forEach((word) => {
         const testLine = currentLine ? `${currentLine} ${word}` : word;
@@ -235,7 +236,7 @@ const InlineDiagram = ({
 
       const lineHeight = 18;
       const totalHeight = lines.length * lineHeight;
-      const startY = useTemplateNodeStyle ? labelY : labelY - totalHeight / 2 + lineHeight / 2;
+      const startY = labelY - totalHeight / 2 + lineHeight / 2;
       lines.forEach((line, idx) =>
         ctx.fillText(line, centerX, startY + idx * lineHeight)
       );
