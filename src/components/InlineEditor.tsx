@@ -131,11 +131,14 @@ const InlineEditor = forwardRef<{ insertText: (text: string) => void }, InlineEd
       setSelectionInfo(null);
 
       try {
-        const requestBody = {
+        const requestBody: Record<string, unknown> = {
           text: selectedText,
           mode: generationMode,
-          templateId: selectedTemplateId,
         };
+        // Only send templateId when NOT in AI auto mode
+        if (!aiAuto) {
+          requestBody.templateId = selectedTemplateId;
+        }
 
         console.info("[generate-diagram] request", requestBody);
 
