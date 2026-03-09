@@ -155,10 +155,20 @@ const InlineEditor = forwardRef<{ insertText: (text: string) => void }, InlineEd
           return;
         }
 
+        const diagramResult = data as DiagramData;
+        
+        // Apply AI suggestions
+        if (diagramResult.suggestedTemplateId && onAiSuggestTemplate) {
+          onAiSuggestTemplate(diagramResult.suggestedTemplateId as DiagramTemplateId);
+        }
+        if (diagramResult.suggestedColorTheme && onAiSuggestColorTheme) {
+          onAiSuggestColorTheme(diagramResult.suggestedColorTheme);
+        }
+
         setBlocks((prev) =>
           prev.map((b) =>
             b.id === newDiagramId
-              ? { ...b, diagramData: data as DiagramData }
+              ? { ...b, diagramData: diagramResult, templateId: (diagramResult.suggestedTemplateId as DiagramTemplateId) || selectedTemplateId }
               : b
           )
         );
