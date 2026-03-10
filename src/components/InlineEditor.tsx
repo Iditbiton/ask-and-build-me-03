@@ -170,10 +170,12 @@ const InlineEditor = forwardRef<{ insertText: (text: string) => void }, InlineEd
               requestBody.templateId = selectedTemplateId;
             }
 
+            console.log("[DEBUG] Calling generate-diagram with:", requestBody);
             const { data, error } = await supabase.functions.invoke(
               "generate-diagram",
               { body: requestBody }
             );
+            console.log("[DEBUG] generate-diagram response:", { data, error });
 
             if (error) {
               toast.error("שגיאה בייצור הדיאגרמה. נסה שנית.");
