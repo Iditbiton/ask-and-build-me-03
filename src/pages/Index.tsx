@@ -47,6 +47,8 @@ const Index = () => {
     }
   }, []);
 
+  const showManualControls = !aiAuto && renderStyle === "sketch";
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-10">
@@ -57,21 +59,29 @@ const Index = () => {
             </div>
             <h1 className="text-lg font-bold font-sketch tracking-wide">OpenNapkinAI</h1>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
             <RenderStyleToggle style={renderStyle} onStyleChange={setRenderStyle} />
             <AiAutoToggle aiAuto={aiAuto} onToggle={setAiAuto} />
-            {!aiAuto && renderStyle === "sketch" && (
-              <>
-                <TemplateSelector
-                  selectedTemplateId={selectedTemplateId}
-                  onSelect={handleSelectTemplate}
-                />
-                <ColorThemePicker
-                  selectedTheme={selectedTheme.id}
-                  onSelect={handleSelectColorTheme}
-                />
-              </>
-            )}
+          </div>
+        </div>
+
+        {/* Manual controls row - always rendered but hidden via CSS to prevent layout shift */}
+        <div
+          className="overflow-hidden transition-all duration-200 ease-in-out"
+          style={{
+            maxHeight: showManualControls ? "60px" : "0px",
+            opacity: showManualControls ? 1 : 0,
+          }}
+        >
+          <div className="flex items-center justify-end gap-2 px-4 md:px-6 pb-2">
+            <TemplateSelector
+              selectedTemplateId={selectedTemplateId}
+              onSelect={handleSelectTemplate}
+            />
+            <ColorThemePicker
+              selectedTheme={selectedTheme.id}
+              onSelect={handleSelectColorTheme}
+            />
           </div>
         </div>
       </header>
