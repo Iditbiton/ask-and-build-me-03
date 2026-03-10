@@ -1,6 +1,6 @@
 export interface DiagramNode {
   id: string;
-  type: "rectangle" | "ellipse" | "diamond" | "circle";
+  type: "rectangle" | "ellipse" | "diamond" | "circle" | "hexagon";
   x: number;
   y: number;
   width: number;

@@ -57,23 +57,19 @@ const Index = () => {
             </div>
             <h1 className="text-lg font-bold font-sketch tracking-wide">OpenNapkinAI</h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <RenderStyleToggle style={renderStyle} onStyleChange={setRenderStyle} />
-            {renderStyle === "sketch" && (
+            <AiAutoToggle aiAuto={aiAuto} onToggle={setAiAuto} />
+            {!aiAuto && renderStyle === "sketch" && (
               <>
-                <AiAutoToggle aiAuto={aiAuto} onToggle={setAiAuto} />
-                {!aiAuto && (
-                  <>
-                    <TemplateSelector
-                      selectedTemplateId={selectedTemplateId}
-                      onSelect={handleSelectTemplate}
-                    />
-                    <ColorThemePicker
-                      selectedTheme={selectedTheme.id}
-                      onSelect={handleSelectColorTheme}
-                    />
-                  </>
-                )}
+                <TemplateSelector
+                  selectedTemplateId={selectedTemplateId}
+                  onSelect={handleSelectTemplate}
+                />
+                <ColorThemePicker
+                  selectedTheme={selectedTheme.id}
+                  onSelect={handleSelectColorTheme}
+                />
               </>
             )}
           </div>

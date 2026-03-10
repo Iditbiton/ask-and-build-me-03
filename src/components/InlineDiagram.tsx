@@ -197,6 +197,21 @@ const InlineDiagram = ({
               [node.x, node.y + node.height / 2],
             ], opts);
             break;
+          case "hexagon": {
+            const cx = node.x + node.width / 2;
+            const cy = node.y + node.height / 2;
+            const rx = node.width / 2;
+            const ry = node.height / 2;
+            rc.polygon([
+              [cx - rx, cy],
+              [cx - rx * 0.5, cy - ry],
+              [cx + rx * 0.5, cy - ry],
+              [cx + rx, cy],
+              [cx + rx * 0.5, cy + ry],
+              [cx - rx * 0.5, cy + ry],
+            ], opts);
+            break;
+          }
           default:
             rc.rectangle(node.x, node.y, node.width, node.height, opts);
         }
