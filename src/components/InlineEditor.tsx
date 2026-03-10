@@ -138,6 +138,7 @@ const InlineEditor = forwardRef<{ insertText: (text: string) => void }, InlineEd
         setSelectionInfo(null);
 
         try {
+          console.log("[DEBUG] generateDiagram start", { renderStyle, generationMode, aiAuto, selectedTemplateId });
           if (renderStyle === "professional") {
             // Use AntV Infographic generation
             const { data, error } = await supabase.functions.invoke(
