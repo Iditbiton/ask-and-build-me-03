@@ -7,32 +7,19 @@ const corsHeaders = {
 };
 
 const TEMPLATE_INSTRUCTIONS: Record<string, string> = {
-  stacked:
-    "Use a stacked layout: 3-5 horizontal layers from top to bottom, each layer wider or equal to the one above. Keep clear vertical separation.",
-  arrow:
-    "Use a directional arrow layout: place nodes in a clear left-to-right or top-to-bottom chain emphasizing progression.",
-  diamond:
-    "Use a diamond-centric decision layout: one core decision node in the center with branches to supporting nodes around it.",
-  puzzle:
-    "Use a puzzle layout: 4-6 tightly grouped complementary nodes arranged as interlocking parts of one whole concept.",
-  radial:
-    "Use a radial layout: one central node with surrounding nodes distributed evenly in a circle.",
-  pinwheel:
-    "Use a pinwheel layout: center-focused rotational arrangement where branches sweep around the center in a spiral-like order.",
-  eight:
-    "Use a figure-eight layout: arrange nodes in two connected loops (left loop and right loop) with one bridge between loops.",
-  pyramid:
-    "Use a pyramid layout: hierarchical triangular structure with one top node, 2 middle nodes, and 3+ base nodes.",
-  funnel:
-    "Use a funnel layout: wide at the top narrowing down, representing filtering or narrowing of items.",
-  timeline:
-    "Use a timeline layout: horizontal or vertical sequence with clear temporal ordering.",
-  hexagon:
-    "Use a hexagon grid layout: honeycomb pattern with hexagonal grouping of related concepts.",
-  venn:
-    "Use a Venn diagram layout: overlapping circles showing relationships and intersections between groups.",
-  cycle:
-    "Use a cycle layout: circular arrangement showing a repeating process with arrows connecting back to the start.",
+  stacked: "Stacked layout: horizontal layers from top to bottom.",
+  arrow: "Arrow layout: left-to-right or top-to-bottom chain showing progression.",
+  diamond: "Diamond layout: one core decision node in center with branches around it.",
+  puzzle: "Puzzle layout: tightly grouped complementary nodes as interlocking parts.",
+  radial: "Radial layout: one central node with surrounding nodes in a circle.",
+  pinwheel: "Pinwheel layout: center-focused spiral arrangement.",
+  eight: "Figure-eight layout: two connected loops with a bridge node.",
+  pyramid: "Pyramid layout: triangular hierarchy, one top, more at base.",
+  funnel: "Funnel layout: wide at top, narrow at bottom, showing filtering.",
+  timeline: "Timeline layout: horizontal/vertical sequence with temporal ordering.",
+  hexagon: "Hexagon grid layout: honeycomb pattern with hexagonal nodes.",
+  venn: "Venn diagram layout: overlapping circles showing relationships.",
+  cycle: "Cycle layout: circular arrangement with arrows connecting back to start.",
 };
 
 const COLOR_THEMES: Record<string, string[]> = {
@@ -77,73 +64,47 @@ type DiagramResponse = {
   suggestedColorTheme?: string;
 };
 
-const SYSTEM_PROMPT = `You are an expert infographic designer — think Napkin.ai quality. Given text, return a JSON object describing a BEAUTIFULLY DESIGNED visual diagram where text and visuals are TIGHTLY INTEGRATED.
+/**
+ * Extract distinct concepts from text by splitting on common delimiters.
+ * Returns the list of concept strings found.
+ */
+function extractConcepts(text: string): string[] {
+  // Try splitting by common separators
+  const separators = [
+    /[,،]+/,       // commas
+    /←|→|↔|⇒|⇔|->|<-|➜|➤/,  // arrows
+    /\n+/,          // newlines
+    /[;؛]+/,        // semicolons
+    /\d+\.\s/,      // numbered lists (1. 2. 3.)
+    /[-•●◦▪]\s/,    // bullet points
+  ];
 
-CRITICAL RULE — NODE COUNT:
-- Create ONE node for EVERY distinct concept, step, or item mentioned in the text.
-- If the text mentions 7 concepts, create 7 nodes. If it mentions 4, create 4.
-- Do NOT summarize or merge concepts. Each concept = one node.
-- Minimum 3 nodes, maximum 12 nodes.
+  let bestSplit: string[] = [text];
 
-DESIGN PRINCIPLES:
-- Think like a VISUAL DESIGNER, not a text formatter
-- Each node label should be SHORT and PUNCHY: 1-3 words MAXIMUM
-- The title should be catchy and concise (2-4 words)
-- Think about visual HIERARCHY: the FIRST node is the main/central concept
-- The diagram should tell a STORY - there must be a clear visual flow
-
-TEXT-VISUAL INTEGRATION RULES:
-- Labels ARE the visual — they must fit perfectly inside their shapes
-- The first/main node should be wider (180-220px) and taller (80-100px)
-- Regular nodes: width 130-160px, height 60-70px
-- NEVER make a label longer than the node width allows (roughly 1 word per 70px)
-- Connection labels explain the RELATIONSHIP (e.g., "leads to", "causes", "enables")
-- Every connection MUST have a short label (1-2 words) explaining the relationship
-
-RULES:
-- Return ONLY valid JSON, no markdown, no backticks, no explanation
-- Canvas dimensions: width 800, height 600
-- Leave 60px top margin for the title
-- Space nodes with at least 40px between them
-- CRITICAL: Detect the language of the input text. If Hebrew, ALL labels and title MUST be in Hebrew.
-- CRITICAL: Labels must be EXTREMELY concise. "תשתית יציבה בבסיס" → "תשתית". "User Experience Design" → "UX".
-- Make the first node visually dominant (larger, centered or at top)
-- Connections must form a logical flow that matches the content's narrative
-
-JSON Schema:
-{
-  "title": "string - catchy 2-4 word title",
-  "type": "flowchart" | "mindmap" | "list" | "comparison" | "process",
-  "nodes": [
-    {
-      "id": "string",
-      "type": "rectangle" | "ellipse" | "diamond" | "circle" | "hexagon",
-      "x": number,
-      "y": number,
-      "width": number (first node 180-220, others 130-160),
-      "height": number (first node 80-100, others 60-70),
-      "label": "string - 1-3 words MAX"
+  for (const sep of separators) {
+    const parts = text.split(sep).map(s => s.trim()).filter(s => s.length > 1);
+    if (parts.length > bestSplit.length) {
+      bestSplit = parts;
     }
-  ],
-  "connections": [
-    {
-      "from": "node_id",
-      "to": "node_id",
-      "label": "REQUIRED - 1-2 word relationship label"
+  }
+
+  // If we only found 1 part, try splitting by Hebrew "ו" conjunctions or colons
+  if (bestSplit.length <= 2) {
+    // Try colon split first (title: items)
+    const colonParts = text.split(/[:：]/).map(s => s.trim()).filter(s => s.length > 1);
+    if (colonParts.length >= 2) {
+      // Re-split the part after colon
+      const afterColon = colonParts.slice(1).join(" ");
+      const subParts = afterColon.split(/[,،]+/).map(s => s.trim()).filter(s => s.length > 1);
+      if (subParts.length > bestSplit.length) {
+        bestSplit = subParts;
+      }
     }
-  ],
-  "width": 800,
-  "height": 600
+  }
+
+  // Limit to 12
+  return bestSplit.slice(0, 12);
 }
-
-Diagram type guidelines:
-- flowchart: Rectangles for steps, diamonds for decisions, clear directional flow
-- mindmap: Central ellipse (large) with branching rectangles/circles radiating out
-- list: Vertical aligned rectangles with sequential connections
-- comparison: Side-by-side columns with cross-connections showing contrasts
-- process: Chain of shapes with labeled arrows showing progression
-
-Choose the most appropriate type. Use a mix of shapes for visual interest.`;
 
 const toTemplateId = (value: unknown): TemplateId | null => {
   if (typeof value !== "string") return null;
@@ -153,7 +114,6 @@ const toTemplateId = (value: unknown): TemplateId | null => {
 const enforceNodeSizes = (nodes: DiagramNode[]) => {
   nodes.forEach((node, i) => {
     if (i === 0) {
-      // Keep first node larger for hierarchy
       node.width = Math.max(node.width, 170);
       node.height = Math.max(node.height, 75);
     } else {
@@ -185,7 +145,7 @@ const createStarConnections = (nodes: DiagramNode[]): DiagramConnection[] => {
 const dedupeConnections = (connections: DiagramConnection[]): DiagramConnection[] => {
   const seen = new Set<string>();
   return connections.filter((connection) => {
-    const key = `${connection.from}->${connection.to}:${connection.label ?? ""}`;
+    const key = `${connection.from}->${connection.to}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -221,7 +181,6 @@ const buildTemplateConnections = (
     }
 
     case "venn": {
-      // Connect overlapping neighbors
       const vennConns: DiagramConnection[] = [];
       for (let i = 0; i < nodes.length; i++) {
         for (let j = i + 1; j < nodes.length; j++) {
@@ -234,20 +193,16 @@ const buildTemplateConnections = (
     case "puzzle": {
       const cols = Math.ceil(Math.sqrt(nodes.length));
       const gridConnections: DiagramConnection[] = [];
-
       nodes.forEach((node, index) => {
         const rightIndex = index + 1;
         const downIndex = index + cols;
-
         if (rightIndex < nodes.length && rightIndex % cols !== 0) {
           gridConnections.push({ from: node.id, to: nodes[rightIndex].id });
         }
-
         if (downIndex < nodes.length) {
           gridConnections.push({ from: node.id, to: nodes[downIndex].id });
         }
       });
-
       return gridConnections;
     }
 
@@ -256,24 +211,20 @@ const buildTemplateConnections = (
       const leftLoop = nodes.slice(0, half);
       const rightLoop = nodes.slice(half);
       const loopConnections: DiagramConnection[] = [];
-
       const connectLoop = (loop: DiagramNode[]) => {
         if (loop.length < 2) return;
-        for (let i = 0; i < loop.length - 1; i += 1) {
+        for (let i = 0; i < loop.length - 1; i++) {
           loopConnections.push({ from: loop[i].id, to: loop[i + 1].id });
         }
         if (loop.length > 2) {
           loopConnections.push({ from: loop[loop.length - 1].id, to: loop[0].id });
         }
       };
-
       connectLoop(leftLoop);
       connectLoop(rightLoop);
-
       if (leftLoop[0] && rightLoop[0]) {
         loopConnections.push({ from: leftLoop[0].id, to: rightLoop[0].id });
       }
-
       return loopConnections;
     }
   }
@@ -294,29 +245,23 @@ const applyTemplateLayout = (diagram: DiagramResponse, templateId: TemplateId | 
   switch (templateId) {
     case "arrow": {
       const minGapX = 24;
-      const maxCols = Math.max(
-        2,
-        Math.floor((800 - 120 + minGapX) / (130 + minGapX)),
-      );
+      const maxCols = Math.max(2, Math.floor((800 - 120 + minGapX) / (130 + minGapX)));
       const rows = Math.ceil(n / maxCols);
       let cursor = 0;
-
-      for (let row = 0; row < rows; row += 1) {
+      for (let row = 0; row < rows; row++) {
         const count = Math.min(maxCols, n - cursor);
         const rowWidth = count * 130 + (count - 1) * minGapX;
         const startX = (800 - rowWidth) / 2;
         const y = 120 + row * 130;
-
-        for (let col = 0; col < count; col += 1) {
+        for (let col = 0; col < count; col++) {
           const visualCol = row % 2 === 0 ? col : count - col - 1;
           const node = nodes[cursor];
           node.x = startX + visualCol * (130 + minGapX);
           node.y = y;
           node.type = cursor === 0 || cursor === n - 1 ? "ellipse" : "rectangle";
-          cursor += 1;
+          cursor++;
         }
       }
-
       diagram.type = "process";
       break;
     }
@@ -333,7 +278,6 @@ const applyTemplateLayout = (diagram: DiagramResponse, templateId: TemplateId | 
         const rows = Math.ceil(n / 2);
         const totalWidth = 2 * 130 + 140;
         const startX = (800 - totalWidth) / 2;
-
         nodes.forEach((node, i) => {
           const col = i < rows ? 0 : 1;
           const row = i < rows ? i : i - rows;
@@ -342,7 +286,6 @@ const applyTemplateLayout = (diagram: DiagramResponse, templateId: TemplateId | 
           node.type = "rectangle";
         });
       }
-
       diagram.type = "list";
       break;
     }
@@ -350,7 +293,6 @@ const applyTemplateLayout = (diagram: DiagramResponse, templateId: TemplateId | 
     case "diamond": {
       const radiusX = Math.min(230, 150 + n * 10);
       const radiusY = Math.min(165, 100 + n * 8);
-
       nodes.forEach((node, i) => {
         if (i === 0) {
           node.x = centerX - 65;
@@ -358,26 +300,22 @@ const applyTemplateLayout = (diagram: DiagramResponse, templateId: TemplateId | 
           node.type = "diamond";
           return;
         }
-
         const angle = ((i - 1) / Math.max(1, n - 1)) * Math.PI * 2;
         node.x = centerX + radiusX * Math.cos(angle) - 65;
         node.y = centerY + radiusY * Math.sin(angle) - 32;
         node.type = i % 2 === 0 ? "ellipse" : "rectangle";
       });
-
       diagram.type = "flowchart";
       break;
     }
 
     case "puzzle": {
       const cols = Math.max(2, Math.ceil(Math.sqrt(n)));
-      const rows = Math.ceil(n / cols);
       const gapX = 26;
       const gapY = 34;
       const totalWidth = cols * 130 + (cols - 1) * gapX;
       const startX = (800 - totalWidth) / 2;
       const startY = 120;
-
       nodes.forEach((node, i) => {
         const col = i % cols;
         const row = Math.floor(i / cols);
@@ -385,15 +323,11 @@ const applyTemplateLayout = (diagram: DiagramResponse, templateId: TemplateId | 
         node.y = startY + row * (64 + gapY);
         node.type = (i + row) % 2 === 0 ? "ellipse" : "rectangle";
       });
-
       diagram.type = "comparison";
       break;
     }
 
     case "radial": {
-      const firstRing = Math.min(6, Math.max(0, n - 1));
-      const secondRing = Math.max(0, n - 1 - firstRing);
-
       nodes.forEach((node, i) => {
         if (i === 0) {
           node.x = centerX - node.width / 2;
@@ -401,24 +335,14 @@ const applyTemplateLayout = (diagram: DiagramResponse, templateId: TemplateId | 
           node.type = "ellipse";
           return;
         }
-
-        if (i <= firstRing) {
-          const angle = ((i - 1) / Math.max(1, firstRing)) * Math.PI * 2 - Math.PI / 2;
-          const radiusX = 170 + Math.min(firstRing, 4) * 10;
-          const radiusY = 140 + Math.min(firstRing, 4) * 8;
-          node.x = centerX + radiusX * Math.cos(angle) - node.width / 2;
-          node.y = centerY + radiusY * Math.sin(angle) - node.height / 2;
-          node.type = "rectangle";
-          return;
-        }
-
-        const outerIndex = i - 1 - firstRing;
-        const angle = (outerIndex / Math.max(1, secondRing)) * Math.PI * 2;
-        node.x = centerX + 250 * Math.cos(angle) - node.width / 2;
-        node.y = centerY + 200 * Math.sin(angle) - node.height / 2;
+        const count = n - 1;
+        const angle = ((i - 1) / count) * Math.PI * 2 - Math.PI / 2;
+        const radiusX = 170 + Math.min(count, 6) * 10;
+        const radiusY = 140 + Math.min(count, 6) * 8;
+        node.x = centerX + radiusX * Math.cos(angle) - node.width / 2;
+        node.y = centerY + radiusY * Math.sin(angle) - node.height / 2;
         node.type = "rectangle";
       });
-
       diagram.type = "mindmap";
       break;
     }
@@ -431,7 +355,6 @@ const applyTemplateLayout = (diagram: DiagramResponse, templateId: TemplateId | 
         node.y = centerY + radius * Math.sin(angle) - 32;
         node.type = i === 0 ? "circle" : "rectangle";
       });
-
       diagram.type = "process";
       break;
     }
@@ -440,19 +363,16 @@ const applyTemplateLayout = (diagram: DiagramResponse, templateId: TemplateId | 
       const half = Math.ceil(n / 2);
       const left = { x: 280, y: 315 };
       const right = { x: 520, y: 315 };
-
       nodes.forEach((node, i) => {
         const inLeft = i < half;
         const sideCount = inLeft ? half : Math.max(1, n - half);
         const sideIndex = inLeft ? i : i - half;
         const angle = (sideIndex / sideCount) * Math.PI * 2;
         const center = inLeft ? left : right;
-
         node.x = center.x + 108 * Math.cos(angle) - 65;
         node.y = center.y + 82 * Math.sin(angle) - 32;
         node.type = i === 0 ? "circle" : "ellipse";
       });
-
       diagram.type = "process";
       break;
     }
@@ -460,33 +380,27 @@ const applyTemplateLayout = (diagram: DiagramResponse, templateId: TemplateId | 
     case "pyramid": {
       let currentIndex = 0;
       let row = 1;
-
       while (currentIndex < n) {
         const itemsInRow = Math.min(row, n - currentIndex);
         const totalWidth = itemsInRow * 130 + (itemsInRow - 1) * 22;
         const startX = (800 - totalWidth) / 2;
         const y = 120 + (row - 1) * 98;
-
-        for (let j = 0; j < itemsInRow && currentIndex < n; j += 1) {
+        for (let j = 0; j < itemsInRow && currentIndex < n; j++) {
           const node = nodes[currentIndex];
           node.x = startX + j * (130 + 22);
           node.y = y;
           node.type = row === 1 ? "diamond" : "rectangle";
-          currentIndex += 1;
+          currentIndex++;
         }
-
-        row += 1;
+        row++;
       }
-
       diagram.type = "comparison";
       break;
     }
 
     case "funnel": {
-      // Funnel: items get narrower (centered) as they go down
       const maxWidth = 260;
       const stepHeight = Math.min(90, Math.floor((600 - 120) / n));
-      
       nodes.forEach((node, i) => {
         const ratio = 1 - (i / Math.max(1, n - 1)) * 0.6;
         const w = Math.max(130, Math.round(maxWidth * ratio));
@@ -496,32 +410,26 @@ const applyTemplateLayout = (diagram: DiagramResponse, templateId: TemplateId | 
         node.y = 100 + i * stepHeight;
         node.type = i === n - 1 ? "ellipse" : "rectangle";
       });
-
       diagram.type = "process";
       break;
     }
 
     case "timeline": {
-      // Timeline: horizontal line with nodes above/below alternating
       const gap = Math.min(140, Math.floor((800 - 80) / n));
       const startX = (800 - (n - 1) * gap) / 2 - 65;
-
       nodes.forEach((node, i) => {
         node.x = startX + i * gap;
         node.y = i % 2 === 0 ? 180 : 360;
         node.type = "rectangle";
       });
-
       diagram.type = "process";
       break;
     }
 
     case "hexagon": {
-      // Hex grid: honeycomb arrangement with hexagonal nodes
       const hexW = 150;
       const hexH = 90;
       const cols = Math.max(2, Math.ceil(Math.sqrt(n)));
-
       nodes.forEach((node, i) => {
         const col = i % cols;
         const row = Math.floor(i / cols);
@@ -532,15 +440,12 @@ const applyTemplateLayout = (diagram: DiagramResponse, templateId: TemplateId | 
         node.height = 80;
         node.type = "hexagon";
       });
-
       diagram.type = "mindmap";
       break;
     }
 
     case "venn": {
-      // Venn: overlapping circles
       const radius = Math.min(160, 100 + n * 15);
-      
       nodes.forEach((node, i) => {
         const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
         const r = n <= 2 ? 80 : radius * 0.45;
@@ -550,22 +455,18 @@ const applyTemplateLayout = (diagram: DiagramResponse, templateId: TemplateId | 
         node.width = 140;
         node.height = 140;
       });
-
       diagram.type = "comparison";
       break;
     }
 
     case "cycle": {
-      // Cycle: circular arrangement
       const cycleRadius = Math.min(180, 120 + n * 12);
-
       nodes.forEach((node, i) => {
         const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
         node.x = centerX + cycleRadius * Math.cos(angle) - 65;
         node.y = centerY + cycleRadius * Math.sin(angle) - 32;
         node.type = "ellipse";
       });
-
       diagram.type = "process";
       break;
     }
@@ -575,7 +476,7 @@ const applyTemplateLayout = (diagram: DiagramResponse, templateId: TemplateId | 
   diagram.connections = dedupeConnections(buildTemplateConnections(nodes, templateId));
 };
 
-// Use tool calling to let AI pick template + color theme
+// Tool calling for AI auto-select
 const autoSelectTools = [
   {
     type: "function",
@@ -588,12 +489,12 @@ const autoSelectTools = [
           templateId: {
             type: "string",
             enum: Object.keys(TEMPLATE_INSTRUCTIONS),
-            description: "The template that best fits the content structure. stacked=layers/hierarchy, arrow=linear process, diamond=decisions, puzzle=complementary parts, radial=central concept with branches, pinwheel=spiral/iterative, eight=two connected loops, pyramid=hierarchy top-to-bottom, funnel=filtering/narrowing, timeline=temporal sequence, hexagon=honeycomb grouping, venn=overlapping relationships, cycle=repeating circular process",
+            description: "The template that best fits the content structure.",
           },
           colorTheme: {
             type: "string",
             enum: Object.keys(COLOR_THEMES),
-            description: "The color theme that best matches the content mood. default=balanced, ocean=professional/tech, sunset=warm/energetic, forest=nature/growth, pastel=soft/friendly, monochrome=serious/formal, neon=bold/modern, earth=grounded/traditional",
+            description: "The color theme that best matches the content mood.",
           },
           reasoning: {
             type: "string",
@@ -606,6 +507,48 @@ const autoSelectTools = [
     },
   },
 ];
+
+function buildSystemPrompt(conceptCount: number, concepts: string[]): string {
+  const conceptList = concepts.map((c, i) => `  ${i + 1}. "${c}"`).join("\n");
+
+  return `You are an expert infographic designer. Given text, return a JSON object describing a diagram.
+
+ABSOLUTE RULE — YOU MUST CREATE EXACTLY ${conceptCount} NODES:
+The user's text contains these ${conceptCount} distinct concepts:
+${conceptList}
+
+You MUST create exactly ${conceptCount} nodes — one for each concept above. Do NOT merge, skip, or summarize any concept.
+
+LABELS:
+- Each node label: 1-3 words MAX (the SHORT version of each concept)
+- Title: 2-4 words, catchy
+- Detect language: if Hebrew input, ALL labels and title MUST be in Hebrew
+- "תשתית יציבה בבסיס" → "תשתית"
+- "User Experience Design" → "UX"
+
+SIZING:
+- First/main node: width 180-220, height 80-100
+- Other nodes: width 130-160, height 60-70
+- Canvas: width 800, height 600
+
+CONNECTIONS:
+- Every connection SHOULD have a short label (1-2 words) explaining the relationship
+- Connections form a logical flow matching the content
+
+Return ONLY valid JSON, no markdown, no backticks:
+{
+  "title": "string",
+  "type": "flowchart" | "mindmap" | "list" | "comparison" | "process",
+  "nodes": [
+    { "id": "string", "type": "rectangle"|"ellipse"|"diamond"|"circle"|"hexagon", "x": number, "y": number, "width": number, "height": number, "label": "string" }
+  ],
+  "connections": [
+    { "from": "node_id", "to": "node_id", "label": "string" }
+  ],
+  "width": 800,
+  "height": 600
+}`;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -622,7 +565,17 @@ serve(async (req) => {
     }
 
     const userTemplateId = toTemplateId(rawTemplateId);
-    console.info("generate-diagram request", { mode, rawTemplateId, userTemplateId });
+    const concepts = extractConcepts(text);
+    const conceptCount = Math.max(3, concepts.length);
+
+    console.info("generate-diagram request", {
+      mode,
+      rawTemplateId,
+      userTemplateId,
+      conceptCount,
+      concepts,
+    });
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       return new Response(JSON.stringify({ error: "API key not configured" }), {
@@ -631,7 +584,7 @@ serve(async (req) => {
       });
     }
 
-    // Step 1: If no template specified, let AI auto-select template + color
+    // Step 1: If no template, let AI auto-select
     let templateId = userTemplateId;
     let suggestedColorTheme: string | null = null;
 
@@ -645,14 +598,8 @@ serve(async (req) => {
         body: JSON.stringify({
           model: "google/gemini-2.5-flash-lite",
           messages: [
-            {
-              role: "system",
-              content: "You are a visual design expert. Analyze the text and select the best diagram template and color theme.",
-            },
-            {
-              role: "user",
-              content: `Analyze this text and select the best visual template and color theme:\n\n${text}`,
-            },
+            { role: "system", content: "You are a visual design expert. Analyze the text and select the best diagram template and color theme." },
+            { role: "user", content: `Analyze this text and select the best visual template and color theme:\n\n${text}` },
           ],
           tools: autoSelectTools,
           tool_choice: { type: "function", function: { name: "select_style" } },
@@ -677,19 +624,20 @@ serve(async (req) => {
         }
       }
 
-      // Fallback
       if (!templateId) templateId = "radial";
       if (!suggestedColorTheme) suggestedColorTheme = "default";
     }
 
     // Step 2: Generate diagram content
     const modeInstruction = mode === "creative"
-      ? "Be creative and expand on the ideas. Add related concepts, elaborate on connections, and make the diagram richer than the literal text. Think of what the user might have meant and add value."
-      : "Stay as close as possible to the original text. Use the exact terms and structure from the text. Do not add concepts that are not explicitly mentioned.";
+      ? "Be creative and expand on the ideas. Add related concepts."
+      : "Stay close to the original text. Use the exact terms.";
 
     const templateInstruction = templateId
-      ? `Template style is '${templateId}'. ${TEMPLATE_INSTRUCTIONS[templateId as string]}`
-      : "No explicit template style provided. Choose the best fitting layout naturally.";
+      ? `Template: '${templateId}'. ${TEMPLATE_INSTRUCTIONS[templateId as string]}`
+      : "";
+
+    const systemPrompt = buildSystemPrompt(conceptCount, concepts);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -698,37 +646,34 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: systemPrompt },
           {
             role: "user",
-            content: `${modeInstruction}\n\n${templateInstruction}\n\nCreate a visual diagram for the following text:\n\n${text}`,
+            content: `${modeInstruction}\n\n${templateInstruction}\n\nCreate a diagram with EXACTLY ${conceptCount} nodes for:\n\n${text}`,
           },
         ],
-        temperature: mode === "creative" ? 0.9 : 0.3,
+        temperature: mode === "creative" ? 0.7 : 0.2,
       }),
     });
 
     if (!response.ok) {
       const errText = await response.text();
       console.error("AI Gateway error:", response.status, errText);
-
-      if (response.status === 429) {
+      const status = response.status;
+      if (status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Payment required. Please add AI credits." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+      if (status === 402) {
+        return new Response(JSON.stringify({ error: "Payment required." }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       return new Response(JSON.stringify({ error: "AI generation failed" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -737,8 +682,7 @@ serve(async (req) => {
 
     if (!content) {
       return new Response(JSON.stringify({ error: "Empty AI response" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -751,17 +695,41 @@ serve(async (req) => {
 
     if (!diagramData.nodes || !Array.isArray(diagramData.nodes)) {
       return new Response(JSON.stringify({ error: "Invalid diagram structure from AI" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // VALIDATION: If AI returned fewer nodes than concepts, pad with missing concepts
+    if (diagramData.nodes.length < conceptCount) {
+      console.warn(`AI returned ${diagramData.nodes.length} nodes, expected ${conceptCount}. Padding...`);
+      const existingLabels = new Set(diagramData.nodes.map(n => n.label.toLowerCase()));
+      
+      for (let i = diagramData.nodes.length; i < conceptCount; i++) {
+        const concept = concepts[i];
+        if (concept && !existingLabels.has(concept.toLowerCase())) {
+          // Shorten concept to 1-3 words
+          const shortLabel = concept.split(/\s+/).slice(0, 3).join(" ");
+          diagramData.nodes.push({
+            id: `node_pad_${i}`,
+            type: "rectangle",
+            x: 100 + (i % 4) * 170,
+            y: 120 + Math.floor(i / 4) * 120,
+            width: 130,
+            height: 64,
+            label: shortLabel,
+          });
+        }
+      }
     }
 
     diagramData.width = diagramData.width || 800;
     diagramData.height = diagramData.height || 600;
 
+    // Apply template layout (repositions ALL nodes according to template)
     applyTemplateLayout(diagramData, templateId);
 
-    // Include AI suggestions in response
+    console.info(`Final diagram: ${diagramData.nodes.length} nodes, template=${templateId}`);
+
     if (!userTemplateId) {
       diagramData.suggestedTemplateId = templateId as string;
     }
