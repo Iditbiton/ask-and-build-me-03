@@ -219,7 +219,7 @@ const InlineEditor = forwardRef<{ insertText: (text: string) => void }, InlineEd
           setLoadingBlockId(null);
         }
       },
-      [generationMode, selectedTemplateId, aiAuto, renderStyle]
+      [generationMode, selectedTemplateId, aiAuto, renderStyle, onAiSuggestTemplate, onAiSuggestColorTheme]
     );
 
     const removeDiagram = useCallback((blockId: string) => {

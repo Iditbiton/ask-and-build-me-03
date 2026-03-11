@@ -645,24 +645,39 @@ serve(async (req) => {
 
     const systemPrompt = buildSystemPrompt(conceptCount, concepts);
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          {
-            role: "user",
-            content: `${modeInstruction}\n\n${templateInstruction}\n\nCreate a diagram with EXACTLY ${conceptCount} nodes for:\n\n${text}`,
-          },
-        ],
-        temperature: mode === "creative" ? 0.7 : 0.2,
-      }),
-    });
+    const diagramController = new AbortController();
+    const diagramTimeout = setTimeout(() => diagramController.abort(), 30000);
+
+    let response: Response;
+    try {
+      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        signal: diagramController.signal,
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: systemPrompt },
+            {
+              role: "user",
+              content: `${modeInstruction}\n\n${templateInstruction}\n\nCreate a diagram with EXACTLY ${conceptCount} nodes for:\n\n${text}`,
+            },
+          ],
+          temperature: mode === "creative" ? 0.7 : 0.2,
+        }),
+      });
+    } catch (e) {
+      clearTimeout(diagramTimeout);
+      console.error("Diagram generation timed out:", e);
+      return new Response(JSON.stringify({ error: "Generation timed out. Please try again." }), {
+        status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    } finally {
+      clearTimeout(diagramTimeout);
+    }
 
     if (!response.ok) {
       const errText = await response.text();
