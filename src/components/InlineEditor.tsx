@@ -7,7 +7,7 @@ import SvgDiagram from "@/components/SvgDiagram";
 import GenerationModeToggle, { type GenerationMode } from "@/components/GenerationModeToggle";
 import type { DiagramData } from "@/types/diagram";
 import { supabase } from "@/integrations/supabase/client";
-import type { DiagramTemplateId } from "@/data/diagramTemplates";
+import { diagramTemplates, type DiagramTemplateId } from "@/data/diagramTemplates";
 import type { RenderStyle } from "@/components/RenderStyleToggle";
 
 export interface DocumentBlock {
@@ -15,7 +15,7 @@ export interface DocumentBlock {
   type: "text" | "diagram";
   content: string;
   diagramData?: DiagramData;
-  antvSyntax?: string;
+  svgContent?: string;
   sourceText?: string;
   templateId?: DiagramTemplateId;
   renderStyle?: RenderStyle;
@@ -28,6 +28,36 @@ interface InlineEditorProps {
   renderStyle?: RenderStyle;
   onAiSuggestTemplate?: (templateId: DiagramTemplateId) => void;
   onAiSuggestColorTheme?: (themeId: string) => void;
+}
+
+/** Validate that a templateId actually exists in the templates list */
+function isValidTemplateId(id: string | undefined): id is DiagramTemplateId {
+  return !!id && diagramTemplates.some((t) => t.id === id);
+}
+
+/** Shared logic: invoke the right edge function and return result */
+async function invokeGeneration(
+  style: RenderStyle,
+  text: string,
+  mode: GenerationMode,
+  aiAuto: boolean,
+  selectedTemplateId: DiagramTemplateId
+): Promise<
+  | { type: "professional"; svg: string }
+  | { type: "sketch"; data: DiagramData }
+  | { error: string }
+> {
+  if (style === "professional") {
+    const { data, error } = await supabase.functions.invoke("generate-infographic", { body: { text } });
+    if (error || data?.error) return { error: data?.error || "שגיאה בייצור האינפוגרפיקה." };
+    return { type: "professional", svg: data.svg };
+  } else {
+    const requestBody: Record<string, unknown> = { text, mode };
+    if (!aiAuto) requestBody.templateId = selectedTemplateId;
+    const { data, error } = await supabase.functions.invoke("generate-diagram", { body: requestBody });
+    if (error || data?.error) return { error: data?.error || "שגיאה בייצור הדיאגרמה. נסה שנית." };
+    return { type: "sketch", data: data as DiagramData };
+  }
 }
 
 const InlineEditor = forwardRef<{ insertText: (text: string) => void }, InlineEditorProps>(
@@ -67,6 +97,7 @@ const InlineEditor = forwardRef<{ insertText: (text: string) => void }, InlineEd
       setBlocks((prev) => prev.map((b) => (b.id === blockId ? { ...b, content: value } : b)));
     }, []);
 
+    // Fix #5: robust selectionchange — handle Text nodes safely
     useEffect(() => {
       const handleSelectionChange = () => {
         const selection = window.getSelection();
@@ -79,12 +110,23 @@ const InlineEditor = forwardRef<{ insertText: (text: string) => void }, InlineEd
         }
         const selectedText = selection.toString().trim();
         if (selectedText.length < 3) return;
-        const range = selection.getRangeAt(0);
-        const container = range.startContainer.parentElement;
-        const blockEl = container?.closest("[data-block-id]");
-        const blockId = blockEl?.getAttribute("data-block-id");
-        if (blockId) {
-          setSelectionInfo({ text: selectedText, blockId, rect: range.getBoundingClientRect() });
+
+        try {
+          const range = selection.getRangeAt(0);
+          const node = range.startContainer;
+          // Handle both Element and Text nodes
+          const element = node.nodeType === Node.ELEMENT_NODE
+            ? (node as Element)
+            : node.parentElement;
+          if (!element) return;
+
+          const blockEl = element.closest("[data-block-id]");
+          const blockId = blockEl?.getAttribute("data-block-id");
+          if (blockId) {
+            setSelectionInfo({ text: selectedText, blockId, rect: range.getBoundingClientRect() });
+          }
+        } catch {
+          // Selection API can throw in edge cases — ignore silently
         }
       };
       document.addEventListener("selectionchange", handleSelectionChange);
@@ -110,6 +152,49 @@ const InlineEditor = forwardRef<{ insertText: (text: string) => void }, InlineEd
       });
     }, [selectedTemplateId, renderStyle]);
 
+    /** Apply generation result to a block — shared between generate & regenerate */
+    const applyResult = useCallback(
+      (blockId: string, result: Awaited<ReturnType<typeof invokeGeneration>>) => {
+        if ("error" in result) {
+          toast.error(result.error);
+          setBlocks((prev) => prev.filter((b) => b.id !== blockId));
+          return;
+        }
+
+        if (result.type === "professional") {
+          setBlocks((prev) => prev.map((b) =>
+            b.id === blockId ? { ...b, svgContent: result.svg, renderStyle: "professional" } : b
+          ));
+          toast.success("האינפוגרפיקה נוצרה!");
+        } else {
+          const diagramResult = result.data;
+
+          // Fix #4: validate suggestedTemplateId before using it
+          const validSuggestedTemplate = isValidTemplateId(diagramResult.suggestedTemplateId)
+            ? diagramResult.suggestedTemplateId
+            : undefined;
+
+          if (validSuggestedTemplate && onAiSuggestTemplate) {
+            onAiSuggestTemplate(validSuggestedTemplate);
+          }
+          if (diagramResult.suggestedColorTheme && onAiSuggestColorTheme) {
+            onAiSuggestColorTheme(diagramResult.suggestedColorTheme);
+          }
+
+          setBlocks((prev) => prev.map((b) =>
+            b.id === blockId ? {
+              ...b, diagramData: diagramResult,
+              templateId: validSuggestedTemplate || selectedTemplateId,
+              renderStyle: "sketch",
+            } : b
+          ));
+          toast.success("הדיאגרמה נוצרה!");
+        }
+      },
+      [selectedTemplateId, onAiSuggestTemplate, onAiSuggestColorTheme]
+    );
+
+    // Fix #3: unified generate function — no duplication
     const generateDiagram = useCallback(
       async (selectedText: string, afterBlockId: string) => {
         const newDiagramId = `diagram-${Date.now()}`;
@@ -118,41 +203,8 @@ const InlineEditor = forwardRef<{ insertText: (text: string) => void }, InlineEd
         setSelectionInfo(null);
 
         try {
-          if (renderStyle === "professional") {
-            const { data, error } = await supabase.functions.invoke("generate-infographic", { body: { text: selectedText } });
-            if (error || data?.error) {
-              toast.error(data?.error || "שגיאה בייצור האינפוגרפיקה.");
-              setBlocks((prev) => prev.filter((b) => b.id !== newDiagramId));
-              return;
-            }
-            setBlocks((prev) => prev.map((b) => b.id === newDiagramId ? { ...b, antvSyntax: data.svg, renderStyle: "professional" } : b));
-            toast.success("האינפוגרפיקה נוצרה!");
-          } else {
-            const requestBody: Record<string, unknown> = { text: selectedText, mode: generationMode };
-            if (!aiAuto) requestBody.templateId = selectedTemplateId;
-
-            const { data, error } = await supabase.functions.invoke("generate-diagram", { body: requestBody });
-            if (error || data?.error) {
-              toast.error(data?.error || "שגיאה בייצור הדיאגרמה. נסה שנית.");
-              setBlocks((prev) => prev.filter((b) => b.id !== newDiagramId));
-              return;
-            }
-
-            const diagramResult = data as DiagramData;
-            if (diagramResult.suggestedTemplateId && onAiSuggestTemplate) {
-              onAiSuggestTemplate(diagramResult.suggestedTemplateId as DiagramTemplateId);
-            }
-            if (diagramResult.suggestedColorTheme && onAiSuggestColorTheme) {
-              onAiSuggestColorTheme(diagramResult.suggestedColorTheme);
-            }
-
-            setBlocks((prev) => prev.map((b) => b.id === newDiagramId ? {
-              ...b, diagramData: diagramResult,
-              templateId: (diagramResult.suggestedTemplateId as DiagramTemplateId) || selectedTemplateId,
-              renderStyle: "sketch",
-            } : b));
-            toast.success("הדיאגרמה נוצרה!");
-          }
+          const result = await invokeGeneration(renderStyle, selectedText, generationMode, aiAuto, selectedTemplateId);
+          applyResult(newDiagramId, result);
         } catch {
           toast.error("משהו השתבש. נסה שנית.");
           setBlocks((prev) => prev.filter((b) => b.id !== newDiagramId));
@@ -160,13 +212,14 @@ const InlineEditor = forwardRef<{ insertText: (text: string) => void }, InlineEd
           setLoadingBlockId(null);
         }
       },
-      [generationMode, selectedTemplateId, aiAuto, renderStyle, onAiSuggestTemplate, onAiSuggestColorTheme, insertDiagramBlock]
+      [generationMode, selectedTemplateId, aiAuto, renderStyle, insertDiagramBlock, applyResult]
     );
 
     const removeDiagram = useCallback((blockId: string) => {
       setBlocks((prev) => prev.filter((b) => b.id !== blockId));
     }, []);
 
+    // Fix #3: regenerate reuses the same invokeGeneration + applyResult
     const regenerateDiagram = useCallback(
       async (blockId: string) => {
         const block = blocks.find((b) => b.id === blockId);
@@ -174,18 +227,24 @@ const InlineEditor = forwardRef<{ insertText: (text: string) => void }, InlineEd
         setLoadingBlockId(blockId);
         try {
           const blockStyle = block.renderStyle || renderStyle;
-          if (blockStyle === "professional") {
-            const { data, error } = await supabase.functions.invoke("generate-infographic", { body: { text: block.sourceText } });
-            if (error || data?.error) { toast.error("שגיאה בייצור מחדש."); return; }
-            setBlocks((prev) => prev.map((b) => b.id === blockId ? { ...b, antvSyntax: data.svg } : b));
+          const result = await invokeGeneration(blockStyle, block.sourceText, generationMode, aiAuto, selectedTemplateId);
+          // For regenerate, don't remove on error — keep existing content
+          if ("error" in result) {
+            toast.error(result.error);
+          } else if (result.type === "professional") {
+            setBlocks((prev) => prev.map((b) =>
+              b.id === blockId ? { ...b, svgContent: result.svg } : b
+            ));
+            toast.success("יוצר מחדש!");
           } else {
-            const requestBody: Record<string, unknown> = { text: block.sourceText, mode: generationMode };
-            if (!aiAuto) requestBody.templateId = selectedTemplateId;
-            const { data, error } = await supabase.functions.invoke("generate-diagram", { body: requestBody });
-            if (error || data?.error) { toast.error("שגיאה בייצור מחדש."); return; }
-            setBlocks((prev) => prev.map((b) => b.id === blockId ? { ...b, diagramData: data as DiagramData, templateId: selectedTemplateId } : b));
+            const validTemplate = isValidTemplateId(result.data.suggestedTemplateId)
+              ? result.data.suggestedTemplateId
+              : selectedTemplateId;
+            setBlocks((prev) => prev.map((b) =>
+              b.id === blockId ? { ...b, diagramData: result.data, templateId: validTemplate } : b
+            ));
+            toast.success("יוצר מחדש!");
           }
-          toast.success("יוצר מחדש!");
         } catch {
           toast.error("משהו השתבש.");
         } finally {
@@ -213,9 +272,11 @@ const InlineEditor = forwardRef<{ insertText: (text: string) => void }, InlineEd
           </div>
         )}
 
-        <div className="flex justify-end mb-2 px-4">
-          <GenerationModeToggle mode={generationMode} onModeChange={setGenerationMode} />
-        </div>
+        {renderStyle === "sketch" && (
+          <div className="flex justify-end mb-2 px-4">
+            <GenerationModeToggle mode={generationMode} onModeChange={setGenerationMode} />
+          </div>
+        )}
 
         <div className="space-y-0">
           {blocks.map((block) =>
@@ -232,7 +293,7 @@ const InlineEditor = forwardRef<{ insertText: (text: string) => void }, InlineEd
               />
             ) : (
               <div key={block.id} data-block-id={block.id}>
-                {loadingBlockId === block.id && !block.diagramData && !block.antvSyntax ? (
+                {loadingBlockId === block.id && !block.diagramData && !block.svgContent ? (
                   <div className="flex items-center justify-center py-12 border-y border-border/50">
                     <div className="text-center space-y-3">
                       <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
@@ -241,9 +302,9 @@ const InlineEditor = forwardRef<{ insertText: (text: string) => void }, InlineEd
                       </p>
                     </div>
                   </div>
-                ) : block.renderStyle === "professional" && block.antvSyntax ? (
+                ) : block.renderStyle === "professional" && block.svgContent ? (
                   <SvgDiagram
-                    svgContent={block.antvSyntax}
+                    svgContent={block.svgContent}
                     sourceText={block.sourceText || ""}
                     isRegenerating={loadingBlockId === block.id}
                     onRemove={() => removeDiagram(block.id)}
