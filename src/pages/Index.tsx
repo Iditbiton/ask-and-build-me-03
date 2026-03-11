@@ -70,26 +70,18 @@ const Index = () => {
           </div>
         </div>
 
-        <div
-          className="overflow-hidden transition-all duration-200 ease-in-out"
-          style={{
-            maxHeight: showManualControls ? "60px" : "0px",
-            opacity: showManualControls ? 1 : 0,
-          }}
-        >
-          <div className="flex items-center justify-end gap-2 px-4 md:px-6 pb-2">
-            <TemplateSelector
-              selectedTemplateId={selectedTemplateId}
-              onSelect={handleSelectTemplate}
+        <div className="flex items-center justify-end gap-2 px-4 md:px-6 py-1.5">
+          <TemplateSelector
+            selectedTemplateId={selectedTemplateId}
+            onSelect={handleSelectTemplate}
+          />
+          {/* Color theme only relevant for sketch mode with manual selection */}
+          {isSketchMode && !aiAuto && (
+            <ColorThemePicker
+              selectedTheme={selectedTheme.id}
+              onSelect={handleSelectColorTheme}
             />
-            {/* Color theme only relevant for sketch mode */}
-            {isSketchMode && (
-              <ColorThemePicker
-                selectedTheme={selectedTheme.id}
-                onSelect={handleSelectColorTheme}
-              />
-            )}
-          </div>
+          )}
         </div>
       </header>
 
