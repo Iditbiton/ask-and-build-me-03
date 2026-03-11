@@ -82,10 +82,13 @@ const Index = () => {
               selectedTemplateId={selectedTemplateId}
               onSelect={handleSelectTemplate}
             />
-            <ColorThemePicker
-              selectedTheme={selectedTheme.id}
-              onSelect={handleSelectColorTheme}
-            />
+            {/* Color theme only relevant for sketch mode */}
+            {isSketchMode && (
+              <ColorThemePicker
+                selectedTheme={selectedTheme.id}
+                onSelect={handleSelectColorTheme}
+              />
+            )}
           </div>
         </div>
       </header>
