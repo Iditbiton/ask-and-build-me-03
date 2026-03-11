@@ -47,7 +47,9 @@ const Index = () => {
     }
   }, []);
 
-  const showManualControls = !aiAuto && renderStyle === "sketch";
+  // Fix #2: aiAuto toggle only relevant in sketch mode
+  const isSketchMode = renderStyle === "sketch";
+  const showManualControls = isSketchMode && !aiAuto;
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -61,11 +63,13 @@ const Index = () => {
           </div>
           <div className="flex items-center gap-2">
             <RenderStyleToggle style={renderStyle} onStyleChange={setRenderStyle} />
-            <AiAutoToggle aiAuto={aiAuto} onToggle={setAiAuto} />
+            {/* Only show aiAuto toggle in sketch mode where it actually matters */}
+            {isSketchMode && (
+              <AiAutoToggle aiAuto={aiAuto} onToggle={setAiAuto} />
+            )}
           </div>
         </div>
 
-        {/* Manual controls row - always rendered but hidden via CSS to prevent layout shift */}
         <div
           className="overflow-hidden transition-all duration-200 ease-in-out"
           style={{
