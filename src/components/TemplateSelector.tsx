@@ -176,10 +176,9 @@ const TemplateSelector = ({ selectedTemplateId, onSelect }: TemplateSelectorProp
               return (
                 <button
                   key={template.id}
-                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => {
                     onSelect(template);
-                    setOpen(true);
+                    setOpen(false);
                   }}
                   className="flex items-start gap-3 rounded-lg p-3 text-right hover:bg-accent/10 transition-colors w-full"
                 >
