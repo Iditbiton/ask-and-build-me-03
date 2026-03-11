@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, forwardRef } from "react";
 import { LayoutGrid, ChevronDown, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -15,135 +15,139 @@ interface TemplateSelectorProps {
   onSelect: (template: Template) => void;
 }
 
-const TemplatePreview = ({ templateId }: { templateId: DiagramTemplateId }) => {
-  const node = "absolute h-2.5 w-2.5 rounded-[3px] bg-primary/80";
-  const roundNode = "absolute h-2.5 w-2.5 rounded-full bg-primary/80";
+const TemplatePreview = forwardRef<HTMLDivElement, { templateId: DiagramTemplateId }>(
+  ({ templateId }, ref) => {
+    const node = "absolute h-2.5 w-2.5 rounded-[3px] bg-primary/80";
+    const roundNode = "absolute h-2.5 w-2.5 rounded-full bg-primary/80";
 
-  return (
-    <div className="relative h-11 w-16 shrink-0 rounded-md border border-border/60 bg-muted/40">
-      {templateId === "arrow" && (
-        <>
-          <span className={`${roundNode} left-2 top-4`} />
-          <span className={`${node} left-6 top-4`} />
-          <span className={`${node} left-10 top-4`} />
-          <span className={`${roundNode} left-[3.1rem] top-4`} />
-        </>
-      )}
+    return (
+      <div ref={ref} className="relative h-11 w-16 shrink-0 rounded-md border border-border/60 bg-muted/40">
+        {templateId === "arrow" && (
+          <>
+            <span className={`${roundNode} left-2 top-4`} />
+            <span className={`${node} left-6 top-4`} />
+            <span className={`${node} left-10 top-4`} />
+            <span className={`${roundNode} left-[3.1rem] top-4`} />
+          </>
+        )}
 
-      {templateId === "stacked" && (
-        <>
-          <span className={`${node} left-6 top-2`} />
-          <span className={`${node} left-6 top-5`} />
-          <span className={`${node} left-6 top-8`} />
-        </>
-      )}
+        {templateId === "stacked" && (
+          <>
+            <span className={`${node} left-6 top-2`} />
+            <span className={`${node} left-6 top-5`} />
+            <span className={`${node} left-6 top-8`} />
+          </>
+        )}
 
-      {templateId === "diamond" && (
-        <>
-          <span className="absolute left-7 top-4 h-3 w-3 rotate-45 rounded-[2px] bg-primary/80" />
-          <span className={`${roundNode} left-2 top-1`} />
-          <span className={`${roundNode} left-12 top-1`} />
-          <span className={`${roundNode} left-2 top-8`} />
-          <span className={`${roundNode} left-12 top-8`} />
-        </>
-      )}
+        {templateId === "diamond" && (
+          <>
+            <span className="absolute left-7 top-4 h-3 w-3 rotate-45 rounded-[2px] bg-primary/80" />
+            <span className={`${roundNode} left-2 top-1`} />
+            <span className={`${roundNode} left-12 top-1`} />
+            <span className={`${roundNode} left-2 top-8`} />
+            <span className={`${roundNode} left-12 top-8`} />
+          </>
+        )}
 
-      {templateId === "puzzle" && (
-        <>
-          <span className={`${roundNode} left-3 top-2`} />
-          <span className={`${node} left-9 top-2`} />
-          <span className={`${node} left-3 top-7`} />
-          <span className={`${roundNode} left-9 top-7`} />
-        </>
-      )}
+        {templateId === "puzzle" && (
+          <>
+            <span className={`${roundNode} left-3 top-2`} />
+            <span className={`${node} left-9 top-2`} />
+            <span className={`${node} left-3 top-7`} />
+            <span className={`${roundNode} left-9 top-7`} />
+          </>
+        )}
 
-      {templateId === "radial" && (
-        <>
-          <span className={`${roundNode} left-7 top-4`} />
-          <span className={`${node} left-2 top-4`} />
-          <span className={`${node} left-12 top-4`} />
-          <span className={`${node} left-7 top-1`} />
-          <span className={`${node} left-7 top-8`} />
-        </>
-      )}
+        {templateId === "radial" && (
+          <>
+            <span className={`${roundNode} left-7 top-4`} />
+            <span className={`${node} left-2 top-4`} />
+            <span className={`${node} left-12 top-4`} />
+            <span className={`${node} left-7 top-1`} />
+            <span className={`${node} left-7 top-8`} />
+          </>
+        )}
 
-      {templateId === "pinwheel" && (
-        <>
-          <span className={`${roundNode} left-7 top-4`} />
-          <span className={`${node} left-10 top-2`} />
-          <span className={`${node} left-12 top-6`} />
-          <span className={`${node} left-8 top-8`} />
-          <span className={`${node} left-4 top-7`} />
-        </>
-      )}
+        {templateId === "pinwheel" && (
+          <>
+            <span className={`${roundNode} left-7 top-4`} />
+            <span className={`${node} left-10 top-2`} />
+            <span className={`${node} left-12 top-6`} />
+            <span className={`${node} left-8 top-8`} />
+            <span className={`${node} left-4 top-7`} />
+          </>
+        )}
 
-      {templateId === "eight" && (
-        <>
-          <span className={`${roundNode} left-3 top-3`} />
-          <span className={`${roundNode} left-3 top-7`} />
-          <span className={`${roundNode} left-11 top-3`} />
-          <span className={`${roundNode} left-11 top-7`} />
-          <span className={`${node} left-7 top-5`} />
-        </>
-      )}
+        {templateId === "eight" && (
+          <>
+            <span className={`${roundNode} left-3 top-3`} />
+            <span className={`${roundNode} left-3 top-7`} />
+            <span className={`${roundNode} left-11 top-3`} />
+            <span className={`${roundNode} left-11 top-7`} />
+            <span className={`${node} left-7 top-5`} />
+          </>
+        )}
 
-      {templateId === "pyramid" && (
-        <>
-          <span className="absolute left-7 top-1 h-3 w-3 rotate-45 rounded-[2px] bg-primary/80" />
-          <span className={`${node} left-4 top-5`} />
-          <span className={`${node} left-10 top-5`} />
-          <span className={`${node} left-2 top-8`} />
-          <span className={`${node} left-7 top-8`} />
-          <span className={`${node} left-12 top-8`} />
-        </>
-      )}
+        {templateId === "pyramid" && (
+          <>
+            <span className="absolute left-7 top-1 h-3 w-3 rotate-45 rounded-[2px] bg-primary/80" />
+            <span className={`${node} left-4 top-5`} />
+            <span className={`${node} left-10 top-5`} />
+            <span className={`${node} left-2 top-8`} />
+            <span className={`${node} left-7 top-8`} />
+            <span className={`${node} left-12 top-8`} />
+          </>
+        )}
 
-      {templateId === "funnel" && (
-        <>
-          <span className="absolute left-2 top-2 h-2 w-12 rounded-[2px] bg-primary/80" />
-          <span className="absolute left-4 top-5 h-2 w-8 rounded-[2px] bg-primary/60" />
-          <span className="absolute left-6 top-8 h-2 w-4 rounded-[2px] bg-primary/40" />
-        </>
-      )}
+        {templateId === "funnel" && (
+          <>
+            <span className="absolute left-2 top-2 h-2 w-12 rounded-[2px] bg-primary/80" />
+            <span className="absolute left-4 top-5 h-2 w-8 rounded-[2px] bg-primary/60" />
+            <span className="absolute left-6 top-8 h-2 w-4 rounded-[2px] bg-primary/40" />
+          </>
+        )}
 
-      {templateId === "timeline" && (
-        <>
-          <span className="absolute left-1 top-5 w-14 h-[2px] bg-primary/40" />
-          <span className={`${node} left-2 top-2`} />
-          <span className={`${node} left-7 top-6`} />
-          <span className={`${node} left-12 top-2`} />
-        </>
-      )}
+        {templateId === "timeline" && (
+          <>
+            <span className="absolute left-1 top-5 w-14 h-[2px] bg-primary/40" />
+            <span className={`${node} left-2 top-2`} />
+            <span className={`${node} left-7 top-6`} />
+            <span className={`${node} left-12 top-2`} />
+          </>
+        )}
 
-      {templateId === "hexagon" && (
-        <>
-          <span className={`${roundNode} left-4 top-2`} />
-          <span className={`${roundNode} left-10 top-2`} />
-          <span className={`${roundNode} left-2 top-6`} />
-          <span className={`${roundNode} left-7 top-6`} />
-          <span className={`${roundNode} left-12 top-6`} />
-        </>
-      )}
+        {templateId === "hexagon" && (
+          <>
+            <span className={`${roundNode} left-4 top-2`} />
+            <span className={`${roundNode} left-10 top-2`} />
+            <span className={`${roundNode} left-2 top-6`} />
+            <span className={`${roundNode} left-7 top-6`} />
+            <span className={`${roundNode} left-12 top-6`} />
+          </>
+        )}
 
-      {templateId === "venn" && (
-        <>
-          <span className="absolute left-3 top-3 h-6 w-6 rounded-full border-2 border-primary/60 bg-transparent" />
-          <span className="absolute left-7 top-3 h-6 w-6 rounded-full border-2 border-primary/60 bg-transparent" />
-        </>
-      )}
+        {templateId === "venn" && (
+          <>
+            <span className="absolute left-3 top-3 h-6 w-6 rounded-full border-2 border-primary/60 bg-transparent" />
+            <span className="absolute left-7 top-3 h-6 w-6 rounded-full border-2 border-primary/60 bg-transparent" />
+          </>
+        )}
 
-      {templateId === "cycle" && (
-        <>
-          <span className={`${roundNode} left-7 top-1`} />
-          <span className={`${roundNode} left-12 top-4`} />
-          <span className={`${roundNode} left-10 top-8`} />
-          <span className={`${roundNode} left-4 top-8`} />
-          <span className={`${roundNode} left-2 top-4`} />
-        </>
-      )}
-    </div>
-  );
-};
+        {templateId === "cycle" && (
+          <>
+            <span className={`${roundNode} left-7 top-1`} />
+            <span className={`${roundNode} left-12 top-4`} />
+            <span className={`${roundNode} left-10 top-8`} />
+            <span className={`${roundNode} left-4 top-8`} />
+            <span className={`${roundNode} left-2 top-4`} />
+          </>
+        )}
+      </div>
+    );
+  }
+);
+
+TemplatePreview.displayName = "TemplatePreview";
 
 const TemplateSelector = ({ selectedTemplateId, onSelect }: TemplateSelectorProps) => {
   const [open, setOpen] = useState(false);
@@ -172,10 +176,9 @@ const TemplateSelector = ({ selectedTemplateId, onSelect }: TemplateSelectorProp
               return (
                 <button
                   key={template.id}
-                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => {
                     onSelect(template);
-                    setOpen(true);
+                    setOpen(false);
                   }}
                   className="flex items-start gap-3 rounded-lg p-3 text-right hover:bg-accent/10 transition-colors w-full"
                 >
