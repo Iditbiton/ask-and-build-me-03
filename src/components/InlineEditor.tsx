@@ -48,7 +48,9 @@ async function invokeGeneration(
   | { error: string }
 > {
   if (style === "professional") {
-    const { data, error } = await supabase.functions.invoke("generate-infographic", { body: { text } });
+    const { data, error } = await supabase.functions.invoke("generate-infographic", {
+      body: { text, templateId: selectedTemplateId },
+    });
     if (error || data?.error) return { error: data?.error || "שגיאה בייצור האינפוגרפיקה." };
     return { type: "professional", svg: data.svg };
   } else {

@@ -47,9 +47,9 @@ const Index = () => {
     }
   }, []);
 
-  // Fix #2: aiAuto toggle only relevant in sketch mode
   const isSketchMode = renderStyle === "sketch";
-  const showManualControls = isSketchMode && !aiAuto;
+  // Show manual controls: in sketch mode when aiAuto is off, OR always in professional mode (template matters there too)
+  const showManualControls = (isSketchMode && !aiAuto) || !isSketchMode;
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -82,10 +82,13 @@ const Index = () => {
               selectedTemplateId={selectedTemplateId}
               onSelect={handleSelectTemplate}
             />
-            <ColorThemePicker
-              selectedTheme={selectedTheme.id}
-              onSelect={handleSelectColorTheme}
-            />
+            {/* Color theme only relevant for sketch mode */}
+            {isSketchMode && (
+              <ColorThemePicker
+                selectedTheme={selectedTheme.id}
+                onSelect={handleSelectColorTheme}
+              />
+            )}
           </div>
         </div>
       </header>
